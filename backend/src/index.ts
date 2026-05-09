@@ -1,17 +1,38 @@
-import "dotenv/config";
-import cors from "cors";
-import express from "express";
+import 'dotenv/config';
+import express from 'express';
+import cors from 'cors';
+import { connectDB } from './db';
+import healthRouter from './routes/health';
+import rootRouter from './routes/root';
+import { notFound, errorHandler } from './middleware/errorHandler';
 
 const app = express();
-const port = Number(process.env.PORT) || 8000;
+const PORT = process.env['PORT'] ?? 8000;
 
-app.use(cors());
+// ── Middleware ────────────────────────────────────────────────────────────────
+app.use(cors({
+  origin: process.env['FRONTEND_URL'] ?? 'http://localhost:5173',
+  credentials: true,
+}));
 app.use(express.json());
 
-app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "pacetrack-api" });
-});
+// ── Routes ────────────────────────────────────────────────────────────────────
+app.use('/', rootRouter);
+app.use('/api/v1', healthRouter);
 
-app.listen(port, () => {
-  console.log(`API listening on http://localhost:${port}`);
-});
+// ── Error handling ────────────────────────────────────────────────────────────
+app.use(notFound);
+app.use(errorHandler);
+
+// ── Start ─────────────────────────────────────────────────────────────────────
+async function start() {
+  await connectDB();
+  app.listen(PORT, () => {
+    console.log(`🚀 PaceTrack API running on http://localhost:${PORT}`);
+    console.log(`   Health: http://localhost:${PORT}/api/v1/health`);
+  });
+}
+
+start();
+
+export default app;
