@@ -54,7 +54,7 @@ Get users registered, logged in, and able to log a run manually. By end of week 
 | W1-BE-2 | **User model** – Mongoose schema: `id`, `email`, `passwordHash`, `firstName`, `lastName`, `createdAt`. Methods: `create`, `findByEmail`, `findById`. | S | W1-BE-1 | Done |
 | W1-BE-3 | **Auth API** – Hash passwords with `bcrypt`. Issue `accessToken` (15m, in response body) + `refreshToken` (7d, HTTP-only cookie). `POST /auth/register` (409 if email taken) and `POST /auth/login` (401 if wrong creds). `authMiddleware` for protected routes. | M | W1-BE-2 | Done |
 | W1-BE-4 | **Run model & CRUD API** – Mongoose schema: `id`, `userId`, `date`, `title`, `notes`, `distanceKm`, `durationSec`, `pace` (auto-computed on save as `durationSec / distanceKm`), `type` (easy / tempo / long / race). Routes: `POST /runs`, `GET /runs` (auth user only, paginated), `GET /runs/:id`, `PUT /runs/:id`, `DELETE /runs/:id`. | M | W1-BE-3 | Done |
-| W1-BE-5 | **Pace formatter** – Expose `pace` in API response as `mm:ss` string (e.g. `"5:12"`). Compute and store as raw seconds in DB. | S | W1-BE-4 | - |
+| W1-BE-5 | **Pace formatter** – Expose `pace` in API response as `mm:ss` string (e.g. `"5:12"`). Compute and store as raw seconds in DB. | S | W1-BE-4 | Done |
 
 ### Frontend (Friend)
 
