@@ -4,6 +4,8 @@ import cors from 'cors';
 import { connectDB } from './db';
 import healthRouter from './routes/health';
 import rootRouter from './routes/root';
+import authRouter from './routes/auth';
+import runsRouter from './routes/runs';
 import { notFound, errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -19,6 +21,8 @@ app.use(express.json());
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/', rootRouter);
 app.use('/api/v1', healthRouter);
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/runs', runsRouter);
 
 // ── Error handling ────────────────────────────────────────────────────────────
 app.use(notFound);
