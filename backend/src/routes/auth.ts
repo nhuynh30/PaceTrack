@@ -84,4 +84,41 @@ router.post('/login', async (req: Request, res: Response) => {
   });
 });
 
+// POST /api/v1/auth/refresh
+router.post('/refresh', async (req: Request, res: Response) => {
+  const token = (req.cookies as Record<string, string | undefined>)['refreshToken'];
+  if (!token) {
+    res.status(401).json({ error: 'No refresh token' });
+    return;
+  }
+
+  const refreshSecret = process.env['REFRESH_SECRET']!;
+  let payload: { sub: string };
+  try {
+    payload = jwt.verify(token, refreshSecret) as { sub: string };
+  } catch {
+    res.status(401).json({ error: 'Invalid or expired refresh token' });
+    return;
+  }
+
+  const user = await User.findById(payload.sub);
+  if (!user) {
+    res.status(401).json({ error: 'User not found' });
+    return;
+  }
+
+  const accessToken = issueTokens(String(user._id), res);
+
+  res.json({
+    accessToken,
+    user: { id: user._id, email: user.email, firstName: user.firstName, lastName: user.lastName },
+  });
+});
+
+// POST /api/v1/auth/logout
+router.post('/logout', (_req: Request, res: Response) => {
+  res.clearCookie('refreshToken', { httpOnly: true, sameSite: 'strict', path: '/' });
+  res.status(204).send();
+});
+
 export default router;
