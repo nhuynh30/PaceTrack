@@ -60,8 +60,8 @@ Get users registered, logged in, and able to log a run manually. By end of week 
 
 | ID      | Task | Scope | Deps | Done |
 | ------- | ---- | ----- | ---- | ---- |
-| W1-FE-1 | **Project scaffold** – Vite + React + TypeScript, Tailwind, React Router v6, Axios client with `VITE_API_URL` base URL. Folders: `src/pages/`, `src/components/`, `src/hooks/`. | S | — | - |
-| W1-FE-2 | **Auth pages** – Login and Sign-up forms with Zod validation. On success store `accessToken` in memory, redirect to dashboard. Show API errors as inline messages. | M | W1-FE-1 | - |
+| W1-FE-1 | **Project scaffold** – Vite + React + TypeScript, Tailwind, React Router v6, Axios client with `VITE_API_URL` base URL. Folders: `src/pages/`, `src/components/`, `src/hooks/`. | S | — | Done |
+| W1-FE-2 | **Auth pages** – Login and Sign-up forms with Zod validation. On success store `accessToken` in memory, redirect to dashboard. Show API errors as inline messages. | M | W1-FE-1 | Done |
 | W1-FE-3 | **useAuth hook + ProtectedRoute** – Expose `user`, `isAuthenticated`, `login`, `logout`. On app load call `POST /auth/refresh` (cookie auto-sent); redirect to `/login` on 401. Wrap private pages in `ProtectedRoute`. | M | W1-FE-2 | - |
 | W1-FE-4 | **Log a run form** – Fields: title, date, distance (km), duration (mm:ss), type (dropdown). Zod validation. `POST /runs` on submit. Show calculated pace in a result card after save. | M | W1-FE-3 | - |
 | W1-FE-5 | **Run history list** – Fetch `GET /runs`, show paginated cards: title, date, distance, pace, type badge (color per type). Click card to open run detail page with all fields. | S | W1-FE-4 | - |
