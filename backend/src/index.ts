@@ -7,6 +7,7 @@ import healthRouter from './routes/health';
 import rootRouter from './routes/root';
 import authRouter from './routes/auth';
 import runsRouter from './routes/runs';
+import elevationRouter from './routes/elevation';
 import { notFound, errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -25,6 +26,7 @@ app.use('/', rootRouter);
 app.use('/api/v1', healthRouter);
 app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/runs', runsRouter);
+app.use('/api/v1/elevation', elevationRouter);
 
 // ── Error handling ────────────────────────────────────────────────────────────
 app.use(notFound);

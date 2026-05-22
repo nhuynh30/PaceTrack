@@ -2,6 +2,8 @@ import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Run, RunType } from '../models/Run';
 import { authMiddleware } from '../middleware/auth';
+import { totalDistanceKm } from '../utils/haversine';
+import { getElevations } from '../services/elevation';
 
 const router = Router();
 router.use(authMiddleware);
@@ -59,6 +61,59 @@ router.get('/', async (req: Request, res: Response) => {
     data: runs,
     pagination: { page, limit, total, pages: Math.ceil(total / limit) },
   });
+});
+
+// POST /api/v1/runs/live
+router.post('/live', async (req: Request, res: Response) => {
+  const { coordinates, startTime, endTime } = req.body as {
+    coordinates?: { lat: number; lng: number; timestamp: string }[];
+    startTime?: string;
+    endTime?: string;
+  };
+
+  if (!coordinates || !Array.isArray(coordinates) || coordinates.length < 2) {
+    res.status(400).json({ error: 'coordinates must be an array of at least 2 points' });
+    return;
+  }
+  if (!startTime || !endTime) {
+    res.status(400).json({ error: 'startTime and endTime are required' });
+    return;
+  }
+
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+  const durationSec = Math.max(1, Math.round((end.getTime() - start.getTime()) / 1000));
+  const distanceKm = totalDistanceKm(coordinates);
+
+  // Fetch elevations and sum only uphill gains — if the API fails, default to 0
+  let elevationGainM = 0;
+  try {
+    const elevations = await getElevations(
+      coordinates.map(c => ({ lat: c.lat, lng: c.lng })),
+    );
+    for (let i = 1; i < elevations.length; i++) {
+      const diff = elevations[i].elevationM - elevations[i - 1].elevationM;
+      if (diff > 0) elevationGainM += diff;
+    }
+  } catch {
+    // Non-fatal — elevation gain stays 0
+  }
+
+  const title = `Live Run – ${start.toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  })}`;
+
+  const run = await Run.create({
+    userId: ownerId(req),
+    date: start,
+    title,
+    distanceKm,
+    durationSec,
+    elevationGainM,
+    type: 'easy',
+  });
+
+  res.status(201).json(run);
 });
 
 // GET /api/v1/runs/:id

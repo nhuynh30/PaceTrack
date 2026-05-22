@@ -14,6 +14,8 @@ export interface IRun extends Document {
   pace: number;
   /** Virtual – formatted pace string for API responses (e.g. "5:12"). Not persisted. */
   paceFormatted: string | null;
+  /** Total metres of uphill climbing during the run. */
+  elevationGainM: number;
   type: RunType;
 }
 
@@ -27,6 +29,7 @@ const runSchema = new Schema<IRun>(
     durationSec: { type: Number, required: true, min: 0 },
     // Stored as raw seconds/km – use paceFormatted in API responses.
     pace: { type: Number },
+    elevationGainM: { type: Number, default: 0 },
     type: { type: String, enum: ['easy', 'tempo', 'long', 'race'], required: true },
   },
   {
