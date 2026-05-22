@@ -80,8 +80,8 @@ The core differentiator. User opens the app, hits Start, and watches their route
 
 | ID      | Task | Scope | Deps | Done |
 | ------- | ---- | ----- | ---- | ---- |
-| W2-BE-1 | **Open Elevation API** – Service that takes `[{lat, lng}]` and returns elevation per point from the Open Elevation API (free, no key). Simple in-memory cache to avoid duplicate calls. Expose `GET /elevation?points=[[lat,lng],...]`. | S | W1-BE-4 | - |
-| W2-BE-2 | **Live session endpoint** – `POST /runs/live` accepts `{ coordinates: [{lat, lng, timestamp}], startTime, endTime }`. Compute distance (haversine sum between consecutive points), duration, pace, elevation gain. Save as a new Run. Return full Run object. | M | W2-BE-1 | - |
+| W2-BE-1 | **Open Elevation API** – Service that takes `[{lat, lng}]` and returns elevation per point from the Open Elevation API (free, no key). Simple in-memory cache to avoid duplicate calls. Expose `GET /elevation?points=[[lat,lng],...]`. | S | W1-BE-4 | Done |
+| W2-BE-2 | **Live session endpoint** – `POST /runs/live` accepts `{ coordinates: [{lat, lng, timestamp}], startTime, endTime }`. Compute distance (haversine sum between consecutive points), duration, pace, elevation gain. Save as a new Run. Return full Run object. | M | W2-BE-1 | Done |
 | W2-BE-3 | **GPX upload** – `POST /upload/gpx` returns an S3 presigned PUT URL (expires 5 min). Frontend uploads directly to S3. Then `PUT /runs/:id` with `{ gpxFileUrl }` to attach file to a run. Add S3 env vars to `.env.example`. | M | W1-BE-4 | - |
 | W2-BE-4 | **Run schema — add GPS fields** – Add `gpxFileUrl` (string), `elevationGainM` (number), `coordinatesCount` (number), `routeGeoJSON` (GeoJSON LineString) to Run schema. Populate from live session or GPX upload. | S | W2-BE-2, W2-BE-3 | - |
 
