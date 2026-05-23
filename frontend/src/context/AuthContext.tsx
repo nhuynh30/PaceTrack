@@ -1,5 +1,5 @@
 import { createContext, useState, useEffect } from 'react';
-import { api } from '../lib/api';
+import { api, setApiToken } from '../lib/api';
 
 export interface UserInfo {
   id: string;
@@ -36,6 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     api.post<{ accessToken: string; user: UserInfo }>('/auth/refresh')
       .then(res => {
+        setApiToken(res.data.accessToken);
         setToken(res.data.accessToken);
         setUser(res.data.user);
       })
@@ -53,6 +54,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       res => res,
       err => {
         if (err?.response?.status === 401) {
+          setApiToken(null);
           setToken(null);
           setUser(null);
         }
@@ -63,12 +65,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   function login(newToken: string, newUser: UserInfo) {
+    setApiToken(newToken);
     setToken(newToken);
     setUser(newUser);
   }
 
   function logout() {
     api.post('/auth/logout').catch(() => {});
+    setApiToken(null);
     setToken(null);
     setUser(null);
   }
