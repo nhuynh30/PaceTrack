@@ -155,13 +155,14 @@ router.put('/:id', async (req: Request, res: Response) => {
     return;
   }
 
-  const { date, title, notes, distanceKm, durationSec, type } = req.body as {
+  const { date, title, notes, distanceKm, durationSec, type, gpxFileUrl } = req.body as {
     date?: string;
     title?: string;
     notes?: string;
     distanceKm?: number;
     durationSec?: number;
     type?: RunType;
+    gpxFileUrl?: string;
   };
 
   const updates: Record<string, unknown> = {};
@@ -171,6 +172,7 @@ router.put('/:id', async (req: Request, res: Response) => {
   if (distanceKm !== undefined) updates['distanceKm'] = distanceKm;
   if (durationSec !== undefined) updates['durationSec'] = durationSec;
   if (type !== undefined) updates['type'] = type;
+  if (gpxFileUrl !== undefined) updates['gpxFileUrl'] = gpxFileUrl;
 
   const updated = await Run.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
   res.json(updated);

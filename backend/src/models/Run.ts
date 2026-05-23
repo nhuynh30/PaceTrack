@@ -16,6 +16,8 @@ export interface IRun extends Document {
   paceFormatted: string | null;
   /** Total metres of uphill climbing during the run. */
   elevationGainM: number;
+  /** S3 URL of the uploaded GPX file, if any. */
+  gpxFileUrl?: string;
   type: RunType;
 }
 
@@ -30,6 +32,7 @@ const runSchema = new Schema<IRun>(
     // Stored as raw seconds/km – use paceFormatted in API responses.
     pace: { type: Number },
     elevationGainM: { type: Number, default: 0 },
+    gpxFileUrl: { type: String },
     type: { type: String, enum: ['easy', 'tempo', 'long', 'race'], required: true },
   },
   {
