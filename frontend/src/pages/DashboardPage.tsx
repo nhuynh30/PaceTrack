@@ -1,10 +1,47 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import LogRunForm from '../components/LogRunForm';
+import { useRuns } from '../hooks/useRuns';
+import type { Run, RunType } from '../hooks/useRuns';
+
+const TYPE_COLORS: Record<RunType, string> = {
+  easy:  'bg-sky-100 text-sky-700',
+  tempo: 'bg-amber-100 text-amber-700',
+  long:  'bg-violet-100 text-violet-700',
+  race:  'bg-rose-100 text-rose-700',
+};
+
+function formatDuration(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  if (h > 0) return `${h}h ${m}m`;
+  return `${m}m`;
+}
+
+function getGreeting(): string {
+  const h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+function thisWeekRuns(runs: Run[]): Run[] {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day + 6) % 7));
+  monday.setHours(0, 0, 0, 0);
+  return runs.filter((r) => new Date(r.date) >= monday);
+}
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { runs, isLoading } = useRuns(20);
+
+  const weekRuns = thisWeekRuns(runs);
+  const weekDistance = weekRuns.reduce((s, r) => s + r.distanceKm, 0);
+  const weekTime = weekRuns.reduce((s, r) => s + r.durationSec, 0);
+  const recentRun = runs[0] ?? null;
 
   function handleLogout() {
     logout();
@@ -12,35 +49,201 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-svh bg-slate-950 text-white">
-      <main className="mx-auto max-w-lg px-6 py-12">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <p className="text-sm font-bold tracking-widest uppercase text-orange-500">PaceTrack</p>
-            {user && (
-              <p className="mt-1 text-slate-400 text-sm">
-                Welcome back, {user.firstName}
-              </p>
-            )}
-          </div>
+    <div className="flex min-h-svh bg-gray-50 text-gray-900">
+      {/* Sidebar */}
+      <aside className="hidden md:flex w-56 flex-col bg-orange-500 text-white">
+        <div className="px-6 py-8">
+          <p className="text-2xl font-black tracking-tight">PaceTrack</p>
+          <p className="mt-0.5 text-xs text-orange-200">Run. Track. Improve.</p>
+        </div>
+
+        <nav className="flex-1 px-3 space-y-1">
+          <NavItem label="Overview" active onClick={() => {}} />
+          <NavItem label="Activities" onClick={() => navigate('/runs')} />
+          <NavItem label="Track Run" onClick={() => navigate('/track')} />
+        </nav>
+
+        <div className="p-4 border-t border-orange-400">
           <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/runs')}
-              className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-400 transition hover:border-slate-500 hover:text-white"
-            >
-              View history
+            <div className="w-9 h-9 rounded-full bg-orange-400 flex items-center justify-center text-sm font-bold">
+              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold truncate">{user?.firstName} {user?.lastName}</p>
+              <button onClick={handleLogout} className="text-xs text-orange-200 hover:text-white">
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main */}
+      <div className="flex-1 flex flex-col">
+        {/* Mobile header */}
+        <header className="md:hidden flex items-center justify-between bg-orange-500 px-4 py-4 text-white">
+          <p className="text-lg font-black tracking-tight">PaceTrack</p>
+          <div className="flex gap-2">
+            <button onClick={() => navigate('/track')} className="rounded-lg bg-white text-orange-500 px-3 py-1.5 text-sm font-bold">
+              Start Run
             </button>
-            <button
-              onClick={handleLogout}
-              className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-400 transition hover:border-slate-500 hover:text-white"
-            >
+            <button onClick={handleLogout} className="rounded-lg border border-orange-300 px-3 py-1.5 text-sm text-white">
               Sign out
             </button>
           </div>
-        </div>
+        </header>
 
-        <LogRunForm />
-      </main>
+        <main className="flex-1 p-6 max-w-5xl w-full mx-auto">
+          {/* Greeting */}
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {getGreeting()}, {user?.firstName}! 👋
+              </h1>
+              <p className="mt-0.5 text-sm text-gray-500">Ready for your next run?</p>
+            </div>
+            <button
+              onClick={() => navigate('/track')}
+              className="hidden md:flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white hover:bg-orange-600 transition"
+            >
+              Start Run +
+            </button>
+          </div>
+
+          {/* This week stats */}
+          <div className="mb-6 rounded-2xl bg-white border border-gray-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <p className="font-semibold text-gray-900">This Week</p>
+              <button onClick={() => navigate('/runs')} className="text-sm text-orange-500 font-medium hover:text-orange-600">
+                View All →
+              </button>
+            </div>
+            <div className="grid grid-cols-3 gap-4">
+              <WeekStat label="Distance" value={`${weekDistance.toFixed(1)} km`} />
+              <WeekStat label="Time" value={formatDuration(weekTime)} />
+              <WeekStat label="Activities" value={String(weekRuns.length)} />
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Recent activity */}
+            <div className="rounded-2xl bg-white border border-gray-200 p-5">
+              <div className="flex items-center justify-between mb-4">
+                <p className="font-semibold text-gray-900">Recent Activity</p>
+                <button onClick={() => navigate('/runs')} className="text-sm text-orange-500 font-medium hover:text-orange-600">
+                  View All →
+                </button>
+              </div>
+
+              {isLoading ? (
+                <div className="space-y-3">
+                  {[1,2,3].map(i => <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />)}
+                </div>
+              ) : runs.length === 0 ? (
+                <div className="py-8 text-center text-gray-400 text-sm">
+                  No runs yet. Hit <span className="text-orange-500 font-medium">Start Run</span> to begin!
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {runs.slice(0, 5).map((run) => (
+                    <button
+                      key={run._id}
+                      onClick={() => navigate(`/runs/${run._id}`)}
+                      className="w-full text-left rounded-xl border border-gray-100 p-3 hover:border-orange-200 hover:bg-orange-50 transition"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-semibold text-gray-900 truncate">{run.title}</p>
+                        <span className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[run.type]}`}>
+                          {run.type}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex gap-3 text-xs text-gray-500">
+                        <span>{run.distanceKm} km</span>
+                        <span>•</span>
+                        <span className="text-orange-500 font-medium">{run.paceFormatted ?? '—'} /km</span>
+                        <span>•</span>
+                        <span>{new Date(run.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Most recent run detail */}
+            <div className="rounded-2xl bg-white border border-gray-200 p-5">
+              <p className="font-semibold text-gray-900 mb-4">Last Run</p>
+              {isLoading ? (
+                <div className="space-y-3">
+                  <div className="h-6 w-1/2 rounded bg-gray-100 animate-pulse" />
+                  <div className="h-4 w-1/3 rounded bg-gray-100 animate-pulse" />
+                  <div className="mt-4 grid grid-cols-2 gap-3">
+                    {[1,2,3,4].map(i => <div key={i} className="h-16 rounded-xl bg-gray-100 animate-pulse" />)}
+                  </div>
+                </div>
+              ) : !recentRun ? (
+                <div className="py-8 text-center text-gray-400 text-sm">
+                  Your last run will appear here.
+                </div>
+              ) : (
+                <LastRunCard run={recentRun} onNavigate={() => navigate(`/runs/${recentRun._id}`)} />
+              )}
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
+function NavItem({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+        active
+          ? 'bg-white/20 text-white'
+          : 'text-orange-100 hover:bg-white/10 hover:text-white'
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+function WeekStat({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
+    </div>
+  );
+}
+
+function LastRunCard({ run, onNavigate }: { run: Run; onNavigate: () => void }) {
+  const date = new Date(run.date).toLocaleDateString(undefined, {
+    weekday: 'long', month: 'short', day: 'numeric',
+  });
+
+  return (
+    <button onClick={onNavigate} className="w-full text-left">
+      <p className="font-semibold text-gray-900">{run.title}</p>
+      <p className="text-xs text-gray-400 mt-0.5">{date}</p>
+      <div className="mt-4 grid grid-cols-2 gap-3">
+        <StatBox label="Distance" value={`${run.distanceKm} km`} />
+        <StatBox label="Avg Pace" value={`${run.paceFormatted ?? '—'} /km`} highlight />
+        <StatBox label="Time" value={formatDuration(run.durationSec)} />
+        <StatBox label="Type" value={run.type.charAt(0).toUpperCase() + run.type.slice(1)} />
+      </div>
+    </button>
+  );
+}
+
+function StatBox({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className="rounded-xl bg-gray-50 border border-gray-100 px-3 py-3">
+      <p className="text-xs text-gray-400">{label}</p>
+      <p className={`mt-0.5 text-lg font-bold ${highlight ? 'text-orange-500' : 'text-gray-900'}`}>{value}</p>
     </div>
   );
 }
