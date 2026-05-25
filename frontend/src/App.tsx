@@ -4,6 +4,8 @@ import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
 import DashboardPage from './pages/DashboardPage';
+import RunHistoryPage from './pages/RunHistoryPage';
+import RunDetailPage from './pages/RunDetailPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -34,6 +36,22 @@ export default function App() {
       />
       <Route path="/" element={<LandingPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
+      <Route
+        path="/runs"
+        element={
+          <ProtectedRoute>
+            <RunHistoryPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/runs/:id"
+        element={
+          <ProtectedRoute>
+            <RunDetailPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }

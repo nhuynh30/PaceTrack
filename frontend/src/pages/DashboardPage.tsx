@@ -23,12 +23,20 @@ export default function DashboardPage() {
               </p>
             )}
           </div>
-          <button
-            onClick={handleLogout}
-            className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-400 transition-colors hover:border-slate-500 hover:text-white"
-          >
-            Sign out
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate('/runs')}
+              className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-400 transition hover:border-slate-500 hover:text-white"
+            >
+              View history
+            </button>
+            <button
+              onClick={handleLogout}
+              className="rounded-lg border border-slate-700 px-3 py-2 text-sm text-slate-400 transition hover:border-slate-500 hover:text-white"
+            >
+              Sign out
+            </button>
+          </div>
         </div>
 
         <LogRunForm />
