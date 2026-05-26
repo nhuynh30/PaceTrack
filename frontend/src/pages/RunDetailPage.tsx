@@ -99,6 +99,12 @@ export default function RunDetailPage() {
             <StatCard label="Avg Pace" value={`${run.paceFormatted ?? '—'} /km`} highlight />
             <StatCard label="Duration" value={formatDuration(run.durationSec)} />
             <StatCard label="Run Type" value={run.type.charAt(0).toUpperCase() + run.type.slice(1)} />
+            {run.elevationGainM != null && run.elevationGainM > 0 && (
+              <StatCard label="Elevation Gain" value={`+${Math.round(run.elevationGainM)} m`} />
+            )}
+            {run.coordinatesCount != null && run.coordinatesCount > 0 && (
+              <StatCard label="GPS Points" value={run.coordinatesCount.toLocaleString()} />
+            )}
           </div>
 
           {/* Notes */}
@@ -106,6 +112,28 @@ export default function RunDetailPage() {
             <div className="rounded-2xl bg-white border border-gray-200 p-5">
               <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-400">Notes</p>
               <p className="text-sm text-gray-700 whitespace-pre-wrap">{run.notes}</p>
+            </div>
+          )}
+
+          {/* GPS / Route info */}
+          {(run.gpxFileUrl || run.routeGeoJSON) && (
+            <div className="mt-4 rounded-2xl bg-white border border-gray-200 p-5 flex items-center justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Route Data</p>
+                <p className="text-sm text-gray-700">
+                  {run.coordinatesCount ? `${run.coordinatesCount.toLocaleString()} GPS points recorded` : 'Route available'}
+                </p>
+              </div>
+              {run.gpxFileUrl && (
+                <a
+                  href={run.gpxFileUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 rounded-lg bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-100 transition"
+                >
+                  Download GPX
+                </a>
+              )}
             </div>
           )}
         </main>

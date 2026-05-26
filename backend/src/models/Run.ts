@@ -3,6 +3,11 @@ import { formatPace } from '../utils/formatPace';
 
 export type RunType = 'easy' | 'tempo' | 'long' | 'race';
 
+export interface IGeoJSONLineString {
+  type: 'LineString';
+  coordinates: [number, number][]; // [lng, lat] pairs (GeoJSON convention)
+}
+
 export interface IRun extends Document {
   userId: mongoose.Types.ObjectId;
   date: Date;
@@ -18,6 +23,10 @@ export interface IRun extends Document {
   elevationGainM: number;
   /** S3 URL of the uploaded GPX file, if any. */
   gpxFileUrl?: string;
+  /** Number of GPS coordinate points recorded. */
+  coordinatesCount?: number;
+  /** GeoJSON LineString of the route for map rendering. */
+  routeGeoJSON?: IGeoJSONLineString;
   type: RunType;
 }
 
@@ -33,6 +42,14 @@ const runSchema = new Schema<IRun>(
     pace: { type: Number },
     elevationGainM: { type: Number, default: 0 },
     gpxFileUrl: { type: String },
+    coordinatesCount: { type: Number },
+    routeGeoJSON: {
+      type: {
+        type: String,
+        enum: ['LineString'],
+      },
+      coordinates: { type: [[Number]] },
+    },
     type: { type: String, enum: ['easy', 'tempo', 'long', 'race'], required: true },
   },
   {

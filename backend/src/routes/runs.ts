@@ -110,6 +110,11 @@ router.post('/live', async (req: Request, res: Response) => {
     distanceKm,
     durationSec,
     elevationGainM,
+    coordinatesCount: coordinates.length,
+    routeGeoJSON: {
+      type: 'LineString',
+      coordinates: coordinates.map(c => [c.lng, c.lat] as [number, number]),
+    },
     type: 'easy',
   });
 
@@ -155,7 +160,7 @@ router.put('/:id', async (req: Request, res: Response) => {
     return;
   }
 
-  const { date, title, notes, distanceKm, durationSec, type, gpxFileUrl } = req.body as {
+  const { date, title, notes, distanceKm, durationSec, type, gpxFileUrl, coordinatesCount, routeGeoJSON } = req.body as {
     date?: string;
     title?: string;
     notes?: string;
@@ -163,6 +168,8 @@ router.put('/:id', async (req: Request, res: Response) => {
     durationSec?: number;
     type?: RunType;
     gpxFileUrl?: string;
+    coordinatesCount?: number;
+    routeGeoJSON?: { type: 'LineString'; coordinates: [number, number][] };
   };
 
   const updates: Record<string, unknown> = {};
@@ -173,6 +180,8 @@ router.put('/:id', async (req: Request, res: Response) => {
   if (durationSec !== undefined) updates['durationSec'] = durationSec;
   if (type !== undefined) updates['type'] = type;
   if (gpxFileUrl !== undefined) updates['gpxFileUrl'] = gpxFileUrl;
+  if (coordinatesCount !== undefined) updates['coordinatesCount'] = coordinatesCount;
+  if (routeGeoJSON !== undefined) updates['routeGeoJSON'] = routeGeoJSON;
 
   const updated = await Run.findByIdAndUpdate(id, updates, { new: true, runValidators: true });
   res.json(updated);

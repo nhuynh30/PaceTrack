@@ -24,6 +24,7 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
+app.use(express.text({ type: ['text/xml', 'application/gpx+xml'] })); // ← add this
 app.use(cookieParser());
 
 // ── Routes ────────────────────────────────────────────────────────────────────
