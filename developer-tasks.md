@@ -89,8 +89,8 @@ The core differentiator. User opens the app, hits Start, and watches their route
 
 | ID      | Task | Scope | Deps | Done |
 | ------- | ---- | ----- | ---- | ---- |
-| W2-FE-1 | **Tracking screen layout** – New page `/track`. Full-height Mapbox map with a bottom HUD showing 4 stat cards: Distance, Current Pace, Elapsed Time, Elevation. Start / Pause / Finish buttons. Mobile-first — this screen is used outdoors while running. | M | W1-FE-5 | - |
-| W2-FE-2 | **Geolocation + live polyline** – On Start: `navigator.geolocation.watchPosition` every 3 seconds. Append new coordinates to local state. Draw live polyline on Mapbox as points arrive. Animate the current-position dot. Show a clear error if GPS is denied or unavailable. | M | W2-FE-1 | - |
+| W2-FE-1 | **Tracking screen layout** – New page `/track`. Full-height Mapbox map with a bottom HUD showing 4 stat cards: Distance, Current Pace, Elapsed Time, Elevation. Start / Pause / Finish buttons. Mobile-first — this screen is used outdoors while running. | M | W1-FE-5 | Done |
+| W2-FE-2 | **Geolocation + live polyline** – On Start: `navigator.geolocation.watchPosition` every 3 seconds. Append new coordinates to local state. Draw live polyline on Mapbox as points arrive. Animate the current-position dot. Show a clear error if GPS is denied or unavailable. | M | W2-FE-1 | Done |
 | W2-FE-3 | **Live metric calculations** – In the browser: haversine distance sum, elapsed seconds from start time, rolling pace (average of last 500m). Every 10 new points, call `GET /elevation` to update elevation gain. Update HUD cards in real time. | M | W2-FE-2 | - |
 | W2-FE-4 | **Finish run flow** – On Finish: stop watching position, show a summary dialog (distance, time, pace). Confirm → `POST /runs/live` with all coordinates. On success navigate to the saved run detail page. Show route on Mapbox from `routeGeoJSON`. Handle errors with a retry button. | S | W2-FE-3 | - |
 
