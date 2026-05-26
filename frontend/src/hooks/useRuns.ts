@@ -3,6 +3,11 @@ import { api } from '../lib/api';
 
 export type RunType = 'easy' | 'tempo' | 'long' | 'race';
 
+export interface GeoJSONLineString {
+  type: 'LineString';
+  coordinates: [number, number][];
+}
+
 export interface Run {
   _id: string;
   title: string;
@@ -13,6 +18,10 @@ export interface Run {
   paceFormatted: string | null;
   type: RunType;
   notes?: string;
+  elevationGainM?: number;
+  gpxFileUrl?: string;
+  coordinatesCount?: number;
+  routeGeoJSON?: GeoJSONLineString;
 }
 
 interface Pagination {

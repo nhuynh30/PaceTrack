@@ -11,6 +11,19 @@ import {
 
 type RunType = 'easy' | 'tempo' | 'long' | 'race';
 
+interface GeoJSONLineString {
+  type: 'LineString';
+  coordinates: [number, number][];
+}
+
+interface GpxData {
+  gpxFileUrl: string;
+  coordinatesCount: number;
+  elevationGainM: number;
+  distanceKm: number;
+  routeGeoJSON: GeoJSONLineString;
+}
+
 interface SavedRun {
   _id: string;
   title: string;
@@ -20,6 +33,8 @@ interface SavedRun {
   pace: number;
   paceFormatted: string | null;
   type: RunType;
+  elevationGainM?: number;
+  coordinatesCount?: number;
 }
 
 const TYPE_META: Record<RunType, { label: string; badge: string }> = {
@@ -33,6 +48,10 @@ export default function LogRunForm() {
   const today = new Date().toISOString().slice(0, 10);
   const [savedRun, setSavedRun] = useState<SavedRun | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
+  const [gpxData, setGpxData] = useState<GpxData | null>(null);
+  const [gpxFileName, setGpxFileName] = useState<string | null>(null);
+  const [gpxLoading, setGpxLoading] = useState(false);
+  const [gpxError, setGpxError] = useState<string | null>(null);
 
   const {
     register,
@@ -55,6 +74,40 @@ export default function LogRunForm() {
   const livePace =
     liveDurSec !== null && liveKm > 0 ? formatPace(liveDurSec / liveKm) : null;
 
+  async function handleGpxUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setGpxError(null);
+    setGpxData(null);
+    setGpxFileName(file.name);
+    setGpxLoading(true);
+
+    try {
+      // 1. Get presigned S3 URL
+      const { data: { uploadUrl, fileUrl } } = await api.post<{ uploadUrl: string; fileUrl: string }>('/upload/gpx');
+
+      // 2. Upload to S3
+      await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/gpx+xml' },
+        body: file,
+      });
+
+      // 3. Parse GPX for GPS fields
+      const gpxText = await file.text();
+      const { data: parsed } = await api.post<Omit<GpxData, 'gpxFileUrl'>>('/upload/gpx/parse', gpxText, {
+        headers: { 'Content-Type': 'application/gpx+xml' },
+      });
+
+      setGpxData({ ...parsed, gpxFileUrl: fileUrl });
+    } catch {
+      setGpxError('Failed to upload or parse GPX file. Please try again.');
+      setGpxFileName(null);
+    } finally {
+      setGpxLoading(false);
+    }
+  }
+
   async function onSubmit(values: LogRunFormValues) {
     setApiError(null);
     setSavedRun(null);
@@ -66,9 +119,17 @@ export default function LogRunForm() {
         distanceKm: parseFloat(values.distanceKm),
         durationSec,
         type: values.type,
+        ...(gpxData && {
+          gpxFileUrl: gpxData.gpxFileUrl,
+          coordinatesCount: gpxData.coordinatesCount,
+          elevationGainM: gpxData.elevationGainM,
+          routeGeoJSON: gpxData.routeGeoJSON,
+        }),
       });
       setSavedRun(data);
       reset({ type: 'easy', date: today, title: '', distanceKm: '', duration: '' });
+      setGpxData(null);
+      setGpxFileName(null);
     } catch (err: unknown) {
       const msg =
         (err as { response?: { data?: { error?: string } } })?.response?.data?.error ??
@@ -153,6 +214,39 @@ export default function LogRunForm() {
               ))}
             </select>
           </Field>
+
+          {/* GPX Upload */}
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium uppercase tracking-wider text-slate-500">
+              GPX File <span className="normal-case text-slate-600">(optional)</span>
+            </label>
+            <label className={[
+              'flex items-center gap-3 cursor-pointer rounded-xl border px-3.5 py-2.5 text-sm transition',
+              gpxError
+                ? 'border-red-500/50 bg-slate-800/60 text-red-400'
+                : gpxData
+                ? 'border-green-500/40 bg-green-500/5 text-green-400'
+                : 'border-slate-700 bg-slate-800/60 text-slate-400 hover:border-orange-500/50',
+            ].join(' ')}>
+              <input
+                type="file"
+                accept=".gpx,application/gpx+xml"
+                className="sr-only"
+                onChange={handleGpxUpload}
+                disabled={gpxLoading}
+              />
+              {gpxLoading ? (
+                <span className="animate-pulse">Uploading & parsing…</span>
+              ) : gpxData ? (
+                <span>
+                  ✓ {gpxFileName} — {gpxData.coordinatesCount} pts · +{Math.round(gpxData.elevationGainM)} m gain
+                </span>
+              ) : (
+                <span>{gpxFileName ? `${gpxFileName} — parsing failed` : 'Choose .gpx file…'}</span>
+              )}
+            </label>
+            {gpxError && <p className="text-xs text-red-400">{gpxError}</p>}
+          </div>
         </div>
 
         {apiError && (

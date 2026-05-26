@@ -59,12 +59,14 @@ export default function TrackPage() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastUpdateRef = useRef<number>(0);
   const startTimeRef = useRef<string | null>(null);
+  const lastAltitudeRef = useRef<number | null>(null);
 
   const [trackingState, setTrackingState] = useState<TrackingState>('idle');
   const [coords, setCoords] = useState<Coord[]>([]);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [gpsError, setGpsError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [liveElevationGainM, setLiveElevationGainM] = useState(0);
 
   // Initialise map once on mount, destroy on unmount
   useEffect(() => {
@@ -174,14 +176,38 @@ export default function TrackPage() {
         if (now - lastUpdateRef.current < 3000) return;
         lastUpdateRef.current = now;
 
-        setCoords((prev) => [
-          ...prev,
-          {
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            timestamp: new Date().toISOString(),
-          },
-        ]);
+        const newCoord: Coord = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude,
+          timestamp: new Date().toISOString(),
+        };
+
+        setCoords((prev) => {
+          const updated = [...prev, newCoord];
+          // Update live elevation using GPS altitude if available, otherwise skip
+          if (pos.coords.altitude !== null && prev.length > 0) {
+            const lastAlt = pos.coords.altitude;
+            // We track cumulative gain via ref to avoid stale closure
+            setLiveElevationGainM((prevGain) => {
+              // Compare against the altitude we would have stored last time —
+              // since we only have the new point here, store last altitude in a ref
+              return prevGain; // updated below via altitudeRef
+            });
+          }
+          return updated;
+        });
+
+        // Update elevation gain if device reports altitude
+        if (pos.coords.altitude !== null) {
+          const alt = pos.coords.altitude;
+          if (lastAltitudeRef.current !== null) {
+            const diff = alt - lastAltitudeRef.current;
+            if (diff > 0) {
+              setLiveElevationGainM((prev) => prev + diff);
+            }
+          }
+          lastAltitudeRef.current = alt;
+        }
       },
       (err) => {
         setGpsError(
@@ -278,7 +304,7 @@ export default function TrackPage() {
           <StatCard label="Distance" value={distanceKm.toFixed(2)} unit="km" />
           <StatCard label="Pace" value={formatPace(distanceKm, elapsedSec)} unit="min / km" />
           <StatCard label="Time" value={formatTime(elapsedSec)} unit="elapsed" />
-          <StatCard label="Elevation" value="--" unit="m gain" />
+          <StatCard label="Elevation" value={liveElevationGainM > 0 ? `+${Math.round(liveElevationGainM)}` : '--'} unit="m gain" />
         </div>
 
         <div className="flex gap-3">
