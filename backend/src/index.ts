@@ -16,7 +16,11 @@ const PORT = process.env['PORT'] ?? 8000;
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: process.env['FRONTEND_URL'] ?? 'http://localhost:5173',
+  origin: [
+    'http://localhost:5173',
+    'http://192.168.1.100:5173',
+    'https://angular-improve-armrest.ngrok-free.dev',
+  ],
   credentials: true,
 }));
 app.use(express.json());
