@@ -9,6 +9,7 @@ import authRouter from './routes/auth';
 import runsRouter from './routes/runs';
 import elevationRouter from './routes/elevation';
 import uploadRouter from './routes/upload';
+import clubsRouter from './routes/clubs';
 import { notFound, errorHandler } from './middleware/errorHandler';
 
 const app = express();
@@ -34,6 +35,7 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/runs', runsRouter);
 app.use('/api/v1/elevation', elevationRouter);
 app.use('/api/v1/upload', uploadRouter);
+app.use('/api/v1/clubs', clubsRouter);
 
 // ── Error handling ────────────────────────────────────────────────────────────
 app.use(notFound);
