@@ -109,7 +109,7 @@ Small groups where members race each other on weekly mileage. Real-time updates 
 | ID      | Task | Scope | Deps | Done |
 | ------- | ---- | ----- | ---- | ---- |
 | W3-BE-1 | **Club model & CRUD** – Mongoose schema: `id`, `name`, `description`, `creatorId`, `memberIds[]`, `createdAt`. Routes: `POST /clubs`, `GET /clubs/:id`, `POST /clubs/:id/join`, `DELETE /clubs/:id/leave`. All protected. | M | W1-BE-3 | Done |
-| W3-BE-2 | **Club leaderboard endpoint** – `GET /clubs/:id/leaderboard`: query all runs for club members in the current week (Mon–Sun), sum `distanceKm` per user, return sorted by total km descending. Include rank, firstName, weeklyKm, runCount. | M | W3-BE-1, W1-BE-4 | - |
+| W3-BE-2 | **Club leaderboard endpoint** – `GET /clubs/:id/leaderboard`: query all runs for club members in the current week (Mon–Sun), sum `distanceKm` per user, return sorted by total km descending. Include rank, firstName, weeklyKm, runCount. | M | W3-BE-1, W1-BE-4 | Done |
 | W3-BE-3 | **Socket.io setup** – Install `socket.io` on Express. When any club member saves a run (`POST /runs` or `POST /runs/live`), emit `leaderboard:update` to that club's Socket.io room with fresh leaderboard data. Members auto-join their club rooms on connect. | M | W3-BE-2 | - |
 | W3-BE-4 | **Personal records endpoint** – `GET /stats/prs`: return fastest pace run, longest run (km), and highest weekly mileage for the auth user. Simple — just query their runs and find min/max. | S | W1-BE-4 | - |
 
