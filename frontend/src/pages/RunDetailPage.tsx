@@ -1,7 +1,11 @@
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import mapboxgl from 'mapbox-gl';
 import { useRun } from '../hooks/useRuns';
-import type { RunType } from '../hooks/useRuns';
+import type { RunType, GeoJSONLineString } from '../hooks/useRuns';
 import { useAuth } from '../hooks/useAuth';
+
+mapboxgl.accessToken = import.meta.env['VITE_MAPBOX_TOKEN'] as string;
 
 const TYPE_COLORS: Record<RunType, string> = {
   easy:  'bg-sky-100 text-sky-700',
@@ -115,8 +119,13 @@ export default function RunDetailPage() {
             </div>
           )}
 
-          {/* GPS / Route info */}
-          {(run.gpxFileUrl || run.routeGeoJSON) && (
+          {/* Route map */}
+          {run.routeGeoJSON && (
+            <RouteMap geoJSON={run.routeGeoJSON} className="mt-4" />
+          )}
+
+          {/* GPX download */}
+          {run.gpxFileUrl && (
             <div className="mt-4 rounded-2xl bg-white border border-gray-200 p-5 flex items-center justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-1">Route Data</p>
@@ -124,16 +133,14 @@ export default function RunDetailPage() {
                   {run.coordinatesCount ? `${run.coordinatesCount.toLocaleString()} GPS points recorded` : 'Route available'}
                 </p>
               </div>
-              {run.gpxFileUrl && (
-                <a
-                  href={run.gpxFileUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 rounded-lg bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-100 transition"
-                >
-                  Download GPX
-                </a>
-              )}
+              <a
+                href={run.gpxFileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-lg bg-orange-50 border border-orange-200 px-3 py-1.5 text-xs font-semibold text-orange-600 hover:bg-orange-100 transition"
+              >
+                Download GPX
+              </a>
             </div>
           )}
         </main>
@@ -181,6 +188,90 @@ function StatCard({ label, value, highlight }: { label: string; value: string; h
       <p className={`mt-2 text-2xl font-bold tabular-nums ${highlight ? 'text-orange-500' : 'text-gray-900'}`}>
         {value}
       </p>
+    </div>
+  );
+}
+
+// ── Route map ────────────────────────────────────────────────────────────────
+
+function RouteMap({ geoJSON, className = '' }: { geoJSON: GeoJSONLineString; className?: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+
+  useEffect(() => {
+    if (mapRef.current || !containerRef.current) return;
+
+    const coords = geoJSON.coordinates; // [lng, lat][]
+
+    // Compute bounding box
+    const lngs = coords.map(([lng]) => lng);
+    const lats = coords.map(([, lat]) => lat);
+    const bounds: [[number, number], [number, number]] = [
+      [Math.min(...lngs), Math.min(...lats)],
+      [Math.max(...lngs), Math.max(...lats)],
+    ];
+
+    const center: [number, number] = coords.length > 0
+      ? [
+          (Math.min(...lngs) + Math.max(...lngs)) / 2,
+          (Math.min(...lats) + Math.max(...lats)) / 2,
+        ]
+      : [106.6297, 10.8231];
+
+    mapRef.current = new mapboxgl.Map({
+      container: containerRef.current,
+      style: 'mapbox://styles/mapbox/dark-v11',
+      center,
+      zoom: 13,
+      interactive: true,
+    });
+
+    mapRef.current.on('load', () => {
+      const m = mapRef.current!;
+
+      m.addSource('route', {
+        type: 'geojson',
+        data: {
+          type: 'Feature',
+          properties: {},
+          geometry: geoJSON,
+        },
+      });
+
+      m.addLayer({
+        id: 'route',
+        type: 'line',
+        source: 'route',
+        layout: { 'line-join': 'round', 'line-cap': 'round' },
+        paint: { 'line-color': '#f97316', 'line-width': 4 },
+      });
+
+      // Start and end markers
+      if (coords.length > 0) {
+        new mapboxgl.Marker({ color: '#22c55e' }).setLngLat(coords[0]).addTo(m);
+        new mapboxgl.Marker({ color: '#ef4444' }).setLngLat(coords[coords.length - 1]).addTo(m);
+      }
+
+      // Fit to route
+      if (coords.length > 1) {
+        m.fitBounds(bounds, { padding: 40, maxZoom: 17 });
+      }
+    });
+
+    return () => {
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  // Run once – geoJSON won't change after mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <div className={`rounded-2xl overflow-hidden border border-gray-200 ${className}`}>
+      <div className="px-5 pt-4 pb-2 bg-white border-b border-gray-100">
+        <p className="text-xs font-semibold uppercase tracking-wider text-gray-400">Route</p>
+      </div>
+      <div ref={containerRef} style={{ height: 280 }} />
     </div>
   );
 }
