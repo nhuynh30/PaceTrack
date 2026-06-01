@@ -13,6 +13,8 @@ interface Coord {
   timestamp: string;
 }
 
+// ── Haversine helpers ────────────────────────────────────────────────────────
+
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -36,19 +38,56 @@ function totalDistanceKm(coords: Coord[]): number {
   return total;
 }
 
-function formatTime(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-  return `${m}:${s.toString().padStart(2, '0')}`;
-}
+/**
+ * Rolling pace over the last 500 m of GPS track.
+ * Returns "--:--" when less than 500 m has been recorded.
+ */
+function rollingPace(coords: Coord[], currentElapsedSec: number): string {
+  if (coords.length < 2) return '--:--';
 
-function formatPace(distanceKm: number, elapsedSec: number): string {
-  if (distanceKm < 0.01) return '--:--';
-  const secPerKm = elapsedSec / distanceKm;
+  // Walk backwards accumulating distance until we exceed 500 m
+  const TARGET_KM = 0.5;
+  let distKm = 0;
+  let i = coords.length - 1;
+  while (i > 0 && distKm < TARGET_KM) {
+    distKm += haversineKm(
+      coords[i - 1].lat, coords[i - 1].lng,
+      coords[i].lat,     coords[i].lng,
+    );
+    i--;
+  }
+
+  if (distKm < TARGET_KM) {
+    // Fallback: use all available distance + elapsed time
+    const total = totalDistanceKm(coords);
+    if (total < 0.01) return '--:--';
+    const secPerKm = currentElapsedSec / total;
+    const m = Math.floor(secPerKm / 60);
+    const s = Math.round(secPerKm % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
+  // Time span for the 500 m window
+  const startTs = new Date(coords[i].timestamp).getTime();
+  const endTs   = new Date(coords[coords.length - 1].timestamp).getTime();
+  const windowSec = (endTs - startTs) / 1000;
+
+  if (windowSec <= 0) return '--:--';
+  const secPerKm = windowSec / distKm;
   const m = Math.floor(secPerKm / 60);
   const s = Math.round(secPerKm % 60);
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
+
+function formatTime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = seconds % 60;
+  if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export default function TrackPage() {
   const navigate = useNavigate();
@@ -60,6 +99,7 @@ export default function TrackPage() {
   const lastUpdateRef = useRef<number>(0);
   const startTimeRef = useRef<string | null>(null);
   const lastAltitudeRef = useRef<number | null>(null);
+  const elevationFetchCountRef = useRef<number>(0);
 
   const [trackingState, setTrackingState] = useState<TrackingState>('idle');
   const [coords, setCoords] = useState<Coord[]>([]);
@@ -68,7 +108,13 @@ export default function TrackPage() {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [liveElevationGainM, setLiveElevationGainM] = useState(0);
 
-  // Initialise map once on mount, destroy on unmount
+  // Summary dialog state
+  const [showSummary, setShowSummary] = useState(false);
+  const [summaryCoords, setSummaryCoords] = useState<Coord[]>([]);
+  const [summaryElapsed, setSummaryElapsed] = useState(0);
+
+  // ── Map init ─────────────────────────────────────────────────────────────
+
   useEffect(() => {
     if (map.current || !mapContainer.current) return;
 
@@ -114,7 +160,8 @@ export default function TrackPage() {
     };
   }, []);
 
-  // Redraw polyline and move marker whenever coords change
+  // ── Redraw polyline + move marker on every coords change ─────────────────
+
   useEffect(() => {
     if (!map.current) return;
 
@@ -152,6 +199,30 @@ export default function TrackPage() {
     }
   }, [coords]);
 
+  // ── Elevation API: fetch every 10 new points ──────────────────────────────
+
+  const fetchElevationGain = useCallback(async (currentCoords: Coord[]) => {
+    if (currentCoords.length < 2) return;
+    try {
+      const points = currentCoords.map((c) => [c.lat, c.lng]);
+      const { data } = await api.get<{ elevation: number }[]>('/elevation', {
+        params: { points: JSON.stringify(points) },
+      });
+
+      // Calculate cumulative gain from returned elevations
+      let gain = 0;
+      for (let i = 1; i < data.length; i++) {
+        const diff = data[i].elevation - data[i - 1].elevation;
+        if (diff > 0) gain += diff;
+      }
+      setLiveElevationGainM(gain);
+    } catch {
+      // Silent – GPS altitude fallback still running
+    }
+  }, []);
+
+  // ── GPS watching ─────────────────────────────────────────────────────────
+
   function stopWatching() {
     if (watchId.current !== null) {
       navigator.geolocation.clearWatch(watchId.current);
@@ -184,20 +255,17 @@ export default function TrackPage() {
 
         setCoords((prev) => {
           const updated = [...prev, newCoord];
-          // Update live elevation using GPS altitude if available, otherwise skip
-          if (pos.coords.altitude !== null && prev.length > 0) {
-            const lastAlt = pos.coords.altitude;
-            // We track cumulative gain via ref to avoid stale closure
-            setLiveElevationGainM((prevGain) => {
-              // Compare against the altitude we would have stored last time —
-              // since we only have the new point here, store last altitude in a ref
-              return prevGain; // updated below via altitudeRef
-            });
+
+          // Every 10 new points, call the elevation API
+          elevationFetchCountRef.current += 1;
+          if (elevationFetchCountRef.current % 10 === 0) {
+            fetchElevationGain(updated);
           }
+
           return updated;
         });
 
-        // Update elevation gain if device reports altitude
+        // GPS altitude fallback for elevation gain
         if (pos.coords.altitude !== null) {
           const alt = pos.coords.altitude;
           if (lastAltitudeRef.current !== null) {
@@ -222,14 +290,18 @@ export default function TrackPage() {
     );
   }
 
+  // ── Controls ─────────────────────────────────────────────────────────────
+
   const handleStart = useCallback(() => {
     if (!navigator.geolocation) {
       setGpsError('GPS is not supported on this device.');
       return;
     }
     startTimeRef.current = new Date().toISOString();
+    elevationFetchCountRef.current = 0;
     setTrackingState('running');
     startWatching();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePause = useCallback(() => {
@@ -240,24 +312,54 @@ export default function TrackPage() {
   const handleResume = useCallback(() => {
     setTrackingState('running');
     startWatching();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleFinish = useCallback(async (currentCoords: Coord[]) => {
+  // Show the summary dialog instead of saving immediately
+  const handleFinishPress = useCallback(() => {
     stopWatching();
+    setSummaryCoords(coords);
+    setSummaryElapsed(elapsedSec);
+    setShowSummary(true);
+  }, [coords, elapsedSec]);
+
+  // Called when user confirms in summary dialog
+  const handleConfirmSave = useCallback(async (currentCoords: Coord[], _elapsed: number) => {
     setSaveError(null);
 
-    // Not enough points to save — just go back
     if (currentCoords.length < 2 || !startTimeRef.current) {
       navigate('/dashboard');
       return;
     }
 
+    setShowSummary(false);
     setTrackingState('saving');
 
-    try {
+    const doSave = async () => {
       const endTime = new Date().toISOString();
       const { data } = await api.post('/runs/live', {
         coordinates: currentCoords,
+        startTime: startTimeRef.current,
+        endTime,
+      });
+      navigate(`/runs/${data._id}`);
+    };
+
+    try {
+      await doSave();
+    } catch {
+      setSaveError('Failed to save run. Tap retry to try again.');
+      setTrackingState('paused');
+    }
+  }, [navigate]);
+
+  const handleRetry = useCallback(async () => {
+    setTrackingState('saving');
+    setSaveError(null);
+    try {
+      const endTime = new Date().toISOString();
+      const { data } = await api.post('/runs/live', {
+        coordinates: summaryCoords,
         startTime: startTimeRef.current,
         endTime,
       });
@@ -266,11 +368,16 @@ export default function TrackPage() {
       setSaveError('Failed to save run. Tap retry to try again.');
       setTrackingState('paused');
     }
-  }, [navigate]);
+  }, [navigate, summaryCoords]);
 
   useEffect(() => () => stopWatching(), []);
 
+  // ── Derived metrics ───────────────────────────────────────────────────────
+
   const distanceKm = totalDistanceKm(coords);
+  const pace = rollingPace(coords, elapsedSec);
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="relative h-svh w-screen overflow-hidden">
@@ -293,8 +400,57 @@ export default function TrackPage() {
 
       {/* Save error banner */}
       {saveError && (
-        <div className="absolute top-4 left-1/2 z-20 w-[90%] -translate-x-1/2 rounded-2xl bg-red-500/90 px-4 py-3 text-sm text-white backdrop-blur-sm">
-          {saveError}
+        <div className="absolute top-16 left-1/2 z-20 w-[90%] -translate-x-1/2 rounded-2xl bg-red-500/90 px-4 py-3 text-sm text-white backdrop-blur-sm flex items-center justify-between gap-3">
+          <span>{saveError}</span>
+          <button
+            onClick={handleRetry}
+            className="shrink-0 rounded-lg bg-white px-3 py-1 text-xs font-bold text-red-600"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Summary dialog */}
+      {showSummary && (
+        <div className="absolute inset-0 z-30 flex items-end bg-black/60 backdrop-blur-sm">
+          <div className="w-full rounded-t-3xl bg-slate-950 px-6 pt-6 pb-10">
+            <p className="mb-5 text-center text-lg font-bold text-white">Run Summary</p>
+
+            <div className="mb-6 grid grid-cols-3 gap-3 text-center">
+              <SummaryItem label="Distance" value={`${totalDistanceKm(summaryCoords).toFixed(2)} km`} />
+              <SummaryItem label="Time" value={formatTime(summaryElapsed)} />
+              <SummaryItem
+                label="Avg Pace"
+                value={
+                  totalDistanceKm(summaryCoords) > 0.01
+                    ? (() => {
+                        const spk = summaryElapsed / totalDistanceKm(summaryCoords);
+                        return `${Math.floor(spk / 60)}:${Math.round(spk % 60).toString().padStart(2, '0')}`;
+                      })()
+                    : '--:--'
+                }
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowSummary(false);
+                  setTrackingState('paused');
+                }}
+                className="flex-1 rounded-2xl border border-slate-600 py-4 text-base font-bold text-white active:scale-95"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleConfirmSave(summaryCoords, summaryElapsed)}
+                className="flex-1 rounded-2xl bg-orange-500 py-4 text-base font-bold text-white active:scale-95"
+              >
+                Save Run
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -302,9 +458,13 @@ export default function TrackPage() {
       <div className="absolute bottom-0 left-0 right-0 z-10 rounded-t-3xl bg-slate-950/90 px-5 pt-5 pb-10 backdrop-blur-md">
         <div className="mb-5 grid grid-cols-2 gap-3">
           <StatCard label="Distance" value={distanceKm.toFixed(2)} unit="km" />
-          <StatCard label="Pace" value={formatPace(distanceKm, elapsedSec)} unit="min / km" />
+          <StatCard label="Pace (500m)" value={pace} unit="min / km" />
           <StatCard label="Time" value={formatTime(elapsedSec)} unit="elapsed" />
-          <StatCard label="Elevation" value={liveElevationGainM > 0 ? `+${Math.round(liveElevationGainM)}` : '--'} unit="m gain" />
+          <StatCard
+            label="Elevation"
+            value={liveElevationGainM > 0 ? `+${Math.round(liveElevationGainM)}` : '--'}
+            unit="m gain"
+          />
         </div>
 
         <div className="flex gap-3">
@@ -326,7 +486,7 @@ export default function TrackPage() {
                 Pause
               </button>
               <button
-                onClick={() => handleFinish(coords)}
+                onClick={handleFinishPress}
                 className="flex-1 rounded-2xl bg-orange-500 py-4 text-base font-bold text-white active:scale-95"
               >
                 Finish
@@ -343,7 +503,7 @@ export default function TrackPage() {
                 Resume
               </button>
               <button
-                onClick={() => handleFinish(coords)}
+                onClick={handleFinishPress}
                 className="flex-1 rounded-2xl border border-slate-600 py-4 text-base font-bold text-white active:scale-95"
               >
                 Finish
@@ -371,6 +531,15 @@ function StatCard({ label, value, unit }: { label: string; value: string; unit: 
       <p className="text-xs font-medium uppercase tracking-widest text-slate-400">{label}</p>
       <p className="mt-1 text-2xl font-bold text-white">{value}</p>
       <p className="text-xs text-slate-500">{unit}</p>
+    </div>
+  );
+}
+
+function SummaryItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl bg-slate-800/60 px-3 py-3">
+      <p className="text-xs font-medium uppercase tracking-widest text-slate-400">{label}</p>
+      <p className="mt-1 text-xl font-bold text-white">{value}</p>
     </div>
   );
 }
