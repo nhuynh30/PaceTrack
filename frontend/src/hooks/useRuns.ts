@@ -82,6 +82,30 @@ export function useRuns(limit = 10): UseRunsResult {
   return { runs, pagination, isLoading, error, page, setPage, refresh };
 }
 
+// ── Run stats ──────────────────────────────────────────────────────────────
+
+export interface RunStats {
+  totalDistanceKm: number;
+  totalDurationSec: number;
+  count: number;
+  bestPace: number | null;
+}
+
+export function useRunStats(): { stats: RunStats | null; isLoading: boolean } {
+  const [stats, setStats] = useState<RunStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get<RunStats>('/runs/stats')
+      .then(r => { if (!cancelled) setStats(r.data); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return { stats, isLoading };
+}
+
 // ── Single run ─────────────────────────────────────────────────────────────
 
 interface UseRunResult {

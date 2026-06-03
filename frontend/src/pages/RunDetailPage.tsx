@@ -1,9 +1,10 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
 import { useRun } from '../hooks/useRuns';
 import type { RunType, GeoJSONLineString } from '../hooks/useRuns';
 import { useAuth } from '../hooks/useAuth';
+import { api } from '../lib/api';
 
 mapboxgl.accessToken = import.meta.env['VITE_MAPBOX_TOKEN'] as string;
 
@@ -27,6 +28,19 @@ export default function RunDetailPage() {
   const navigate = useNavigate();
   const { logout } = useAuth();
   const { run, isLoading, error } = useRun(id!);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      await api.delete(`/runs/${id}`);
+      navigate('/runs', { replace: true });
+    } catch {
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -91,9 +105,36 @@ export default function RunDetailPage() {
           {/* Title */}
           <div className="flex items-start justify-between gap-4 mb-1">
             <h1 className="text-2xl font-bold text-gray-900 leading-tight">{run.title}</h1>
-            <span className={`mt-1 shrink-0 rounded-full px-3 py-1 text-xs font-medium ${TYPE_COLORS[run.type]}`}>
-              {run.type.charAt(0).toUpperCase() + run.type.slice(1)}
-            </span>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={`mt-1 rounded-full px-3 py-1 text-xs font-medium ${TYPE_COLORS[run.type]}`}>
+                {run.type.charAt(0).toUpperCase() + run.type.slice(1)}
+              </span>
+              {!confirmDelete && (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="mt-1 rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-400 hover:border-red-200 hover:text-red-500 transition"
+                >
+                  Delete
+                </button>
+              )}
+              {confirmDelete && (
+                <div className="mt-1 flex items-center gap-1.5">
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white hover:bg-red-600 transition disabled:opacity-50"
+                  >
+                    {deleting ? '…' : 'Yes, delete'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-400 hover:text-gray-600 transition"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
           <p className="text-sm text-gray-400 mb-8">{date}</p>
 
@@ -151,15 +192,16 @@ export default function RunDetailPage() {
 
 function Sidebar({ onNavigate, onLogout }: { onNavigate: (path: string) => void; onLogout: () => void }) {
   return (
-    <aside className="hidden md:flex w-56 flex-col bg-orange-500 text-white shrink-0">
+    <aside className="hidden md:flex w-60 flex-col bg-orange-500 text-white shrink-0">
       <div className="px-6 py-8">
         <p className="text-2xl font-black tracking-tight">PaceTrack</p>
         <p className="mt-0.5 text-xs text-orange-200">Run. Track. Improve.</p>
       </div>
       <nav className="flex-1 px-3 space-y-1">
-        <NavItem label="Overview" onClick={() => onNavigate('/dashboard')} />
-        <NavItem label="Activities" active onClick={() => {}} />
-        <NavItem label="Track Run" onClick={() => onNavigate('/track')} />
+        <NavItem label="Overview" icon={<GridIcon />} onClick={() => onNavigate('/dashboard')} />
+        <NavItem label="Activities" icon={<ActivityIcon />} active onClick={() => {}} />
+        <NavItem label="Clubs" icon={<ClubsIcon />} onClick={() => onNavigate('/clubs')} />
+        <NavItem label="Track Run" icon={<PinIcon />} onClick={() => onNavigate('/track')} />
       </nav>
       <div className="p-4 border-t border-orange-400">
         <button onClick={onLogout} className="text-sm text-orange-200 hover:text-white">Sign out</button>
@@ -168,17 +210,29 @@ function Sidebar({ onNavigate, onLogout }: { onNavigate: (path: string) => void;
   );
 }
 
-function NavItem({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) {
+function NavItem({ label, icon, active, onClick }: { label: string; icon?: React.ReactNode; active?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+      className={`w-full flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
         active ? 'bg-white/20 text-white' : 'text-orange-100 hover:bg-white/10 hover:text-white'
       }`}
     >
-      {label}
+      {icon}{label}
     </button>
   );
+}
+function GridIcon() {
+  return <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
+}
+function ActivityIcon() {
+  return <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
+}
+function ClubsIcon() {
+  return <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
+}
+function PinIcon() {
+  return <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>;
 }
 
 function StatCard({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {

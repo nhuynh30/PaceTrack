@@ -51,16 +51,17 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-svh bg-gray-50 text-gray-900">
       {/* Sidebar */}
-      <aside className="hidden md:flex w-56 flex-col bg-orange-500 text-white">
+      <aside className="hidden md:flex w-60 flex-col bg-orange-500 text-white">
         <div className="px-6 py-8">
           <p className="text-2xl font-black tracking-tight">PaceTrack</p>
           <p className="mt-0.5 text-xs text-orange-200">Run. Track. Improve.</p>
         </div>
 
         <nav className="flex-1 px-3 space-y-1">
-          <NavItem label="Overview" active onClick={() => {}} />
-          <NavItem label="Activities" onClick={() => navigate('/runs')} />
-          <NavItem label="Track Run" onClick={() => navigate('/track')} />
+          <NavItem label="Overview" icon={<GridIcon />} active onClick={() => {}} />
+          <NavItem label="Activities" icon={<ActivityIcon />} onClick={() => navigate('/runs')} />
+          <NavItem label="Clubs" icon={<ClubsIcon />} onClick={() => navigate('/clubs')} />
+          <NavItem label="Track Run" icon={<PinIcon />} onClick={() => navigate('/track')} />
         </nav>
 
         <div className="p-4 border-t border-orange-400">
@@ -84,8 +85,11 @@ export default function DashboardPage() {
         <header className="md:hidden flex items-center justify-between bg-orange-500 px-4 py-4 text-white">
           <p className="text-lg font-black tracking-tight">PaceTrack</p>
           <div className="flex gap-2">
-            <button onClick={() => navigate('/track')} className="rounded-lg bg-white text-orange-500 px-3 py-1.5 text-sm font-bold">
-              Start Run
+            <button
+              onClick={() => navigate('/track')}
+              className="flex items-center gap-1.5 rounded-full bg-white text-red-500 px-4 py-1.5 text-sm font-bold shadow-sm"
+            >
+              🏃 Start Run
             </button>
             <button onClick={handleLogout} className="rounded-lg border border-orange-300 px-3 py-1.5 text-sm text-white">
               Sign out
@@ -104,9 +108,9 @@ export default function DashboardPage() {
             </div>
             <button
               onClick={() => navigate('/track')}
-              className="hidden md:flex items-center gap-2 rounded-xl bg-orange-500 px-5 py-3 text-sm font-bold text-white hover:bg-orange-600 transition"
+              className="hidden md:flex items-center gap-2 rounded-full bg-gradient-to-r from-red-500 to-red-600 px-6 py-3 text-sm font-bold text-white shadow-lg shadow-red-200 hover:shadow-red-300 hover:scale-[1.03] active:scale-[0.97] transition-all duration-150"
             >
-              Start Run +
+              🏃 Start Run
             </button>
           </div>
 
@@ -196,18 +200,48 @@ export default function DashboardPage() {
   );
 }
 
-function NavItem({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) {
+function NavItem({ label, icon, active, onClick }: { label: string; icon?: React.ReactNode; active?: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left rounded-xl px-4 py-2.5 text-sm font-medium transition ${
-        active
-          ? 'bg-white/20 text-white'
-          : 'text-orange-100 hover:bg-white/10 hover:text-white'
+      className={`w-full flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition ${
+        active ? 'bg-white/20 text-white' : 'text-orange-100 hover:bg-white/10 hover:text-white'
       }`}
     >
+      {icon}
       {label}
     </button>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+      <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+    </svg>
+  );
+}
+function ActivityIcon() {
+  return (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  );
+}
+function ClubsIcon() {
+  return (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+    </svg>
+  );
+}
+function PinIcon() {
+  return (
+    <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
   );
 }
 
