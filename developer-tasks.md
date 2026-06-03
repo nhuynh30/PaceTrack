@@ -91,8 +91,8 @@ The core differentiator. User opens the app, hits Start, and watches their route
 | ------- | ---- | ----- | ---- | ---- |
 | W2-FE-1 | **Tracking screen layout** – New page `/track`. Full-height Mapbox map with a bottom HUD showing 4 stat cards: Distance, Current Pace, Elapsed Time, Elevation. Start / Pause / Finish buttons. Mobile-first — this screen is used outdoors while running. | M | W1-FE-5 | Done |
 | W2-FE-2 | **Geolocation + live polyline** – On Start: `navigator.geolocation.watchPosition` every 3 seconds. Append new coordinates to local state. Draw live polyline on Mapbox as points arrive. Animate the current-position dot. Show a clear error if GPS is denied or unavailable. | M | W2-FE-1 | Done |
-| W2-FE-3 | **Live metric calculations** – In the browser: haversine distance sum, elapsed seconds from start time, rolling pace (average of last 500m). Every 10 new points, call `GET /elevation` to update elevation gain. Update HUD cards in real time. | M | W2-FE-2 | - |
-| W2-FE-4 | **Finish run flow** – On Finish: stop watching position, show a summary dialog (distance, time, pace). Confirm → `POST /runs/live` with all coordinates. On success navigate to the saved run detail page. Show route on Mapbox from `routeGeoJSON`. Handle errors with a retry button. | S | W2-FE-3 | - |
+| W2-FE-3 | **Live metric calculations** – In the browser: haversine distance sum, elapsed seconds from start time, rolling pace (average of last 500m). Every 10 new points, call `GET /elevation` to update elevation gain. Update HUD cards in real time. | M | W2-FE-2 | Done |
+| W2-FE-4 | **Finish run flow** – On Finish: stop watching position, show a summary dialog (distance, time, pace). Confirm → `POST /runs/live` with all coordinates. On success navigate to the saved run detail page. Show route on Mapbox from `routeGeoJSON`. Handle errors with a retry button. | S | W2-FE-3 | Done |
 
 **Done when:** User can start a live run, watch their route drawn on the map, finish, and see the saved run with distance, pace, and elevation.
 
@@ -110,8 +110,8 @@ Small groups where members race each other on weekly mileage. Real-time updates 
 | ------- | ---- | ----- | ---- | ---- |
 | W3-BE-1 | **Club model & CRUD** – Mongoose schema: `id`, `name`, `description`, `creatorId`, `memberIds[]`, `createdAt`. Routes: `POST /clubs`, `GET /clubs/:id`, `POST /clubs/:id/join`, `DELETE /clubs/:id/leave`. All protected. | M | W1-BE-3 | Done |
 | W3-BE-2 | **Club leaderboard endpoint** – `GET /clubs/:id/leaderboard`: query all runs for club members in the current week (Mon–Sun), sum `distanceKm` per user, return sorted by total km descending. Include rank, firstName, weeklyKm, runCount. | M | W3-BE-1, W1-BE-4 | Done |
-| W3-BE-3 | **Socket.io setup** – Install `socket.io` on Express. When any club member saves a run (`POST /runs` or `POST /runs/live`), emit `leaderboard:update` to that club's Socket.io room with fresh leaderboard data. Members auto-join their club rooms on connect. | M | W3-BE-2 | - |
-| W3-BE-4 | **Personal records endpoint** – `GET /stats/prs`: return fastest pace run, longest run (km), and highest weekly mileage for the auth user. Simple — just query their runs and find min/max. | S | W1-BE-4 | - |
+| W3-BE-3 | **Socket.io setup** – Install `socket.io` on Express. When any club member saves a run (`POST /runs` or `POST /runs/live`), emit `leaderboard:update` to that club's Socket.io room with fresh leaderboard data. Members auto-join their club rooms on connect. | M | W3-BE-2 | Done |
+| W3-BE-4 | **Personal records endpoint** – `GET /stats/prs`: return fastest pace run, longest run (km), and highest weekly mileage for the auth user. Simple — just query their runs and find min/max. | S | W1-BE-4 | Done |
 
 ### Frontend (Friend)
 
