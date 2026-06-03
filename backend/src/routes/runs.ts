@@ -1,12 +1,27 @@
 import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
 import { Run, RunType } from '../models/Run';
+import { Club } from '../models/Club';
 import { authMiddleware } from '../middleware/auth';
 import { totalDistanceKm } from '../utils/haversine';
 import { getElevations } from '../services/elevation';
+import { getIo } from '../socket';
+import { buildLeaderboard } from '../services/leaderboard';
 
 const router = Router();
 router.use(authMiddleware);
+
+async function emitLeaderboardUpdates(userId: string): Promise<void> {
+  const clubs = await Club.find({ memberIds: userId }).select('_id').lean();
+  const io = getIo();
+  await Promise.all(
+    clubs.map(async (club) => {
+      const clubId = String(club._id);
+      const leaderboard = await buildLeaderboard(clubId);
+      io.to(clubId).emit('leaderboard:update', leaderboard);
+    }),
+  );
+}
 
 function ownerId(req: Request): string {
   return req.user!.sub;
@@ -43,6 +58,8 @@ router.post('/', async (req: Request, res: Response) => {
   });
 
   res.status(201).json(run);
+
+  emitLeaderboardUpdates(ownerId(req)).catch(() => {});
 });
 
 // GET /api/v1/runs
@@ -119,6 +136,8 @@ router.post('/live', async (req: Request, res: Response) => {
   });
 
   res.status(201).json(run);
+
+  emitLeaderboardUpdates(ownerId(req)).catch(() => {});
 });
 
 // GET /api/v1/runs/:id
