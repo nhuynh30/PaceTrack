@@ -62,6 +62,25 @@ router.post('/', async (req: Request, res: Response) => {
   emitLeaderboardUpdates(ownerId(req)).catch(() => {});
 });
 
+// GET /api/v1/runs/stats — must be before /:id
+router.get('/stats', async (req: Request, res: Response) => {
+  const filter = { userId: ownerId(req) };
+  const runs = await Run.find(filter).select('distanceKm durationSec pace').lean();
+
+  const totalDistanceKm = runs.reduce((sum, r) => sum + (r.distanceKm || 0), 0);
+  const totalDurationSec = runs.reduce((sum, r) => sum + (r.durationSec || 0), 0);
+  const count = runs.length;
+  const paces = runs.map(r => r.pace).filter((p): p is number => typeof p === 'number' && p > 0);
+  const bestPace = paces.length > 0 ? Math.min(...paces) : null;
+
+  res.json({
+    totalDistanceKm: Math.round(totalDistanceKm * 100) / 100,
+    totalDurationSec,
+    count,
+    bestPace,
+  });
+});
+
 // GET /api/v1/runs
 router.get('/', async (req: Request, res: Response) => {
   const page = Math.max(1, parseInt(String(req.query['page'] ?? '1'), 10));

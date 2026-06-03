@@ -37,7 +37,69 @@ router.post('/', async (req: Request, res: Response) => {
   res.status(201).json(club);
 });
 
-// GET /api/v1/clubs/:id
+// GET /api/v1/clubs
+router.get('/', async (req: Request, res: Response) => {
+  const uid = userId(req);
+  const clubs = await Club.find({ memberIds: uid }).sort({ createdAt: -1 }).lean();
+  res.json(clubs);
+});
+
+// GET /api/v1/clubs/all  — must be before /:id so "all" isn't matched as an id
+router.get('/all', async (_req: Request, res: Response) => {
+  const clubs = await Club.find({}).sort({ createdAt: -1 }).lean();
+  res.json(clubs);
+});
+
+// GET /api/v1/clubs/activity — before /:id so "activity" isn't matched as an id
+router.get('/activity', async (req: Request, res: Response) => {
+  const uid = userId(req);
+  const clubs = await Club.find({ memberIds: uid })
+    .select('name joinHistory createdAt creatorId')
+    .lean();
+
+  interface ActivityEvent {
+    type: 'created' | 'joined';
+    clubId: string;
+    clubName: string;
+    firstName: string;
+    isCurrentUser: boolean;
+    date: string;
+  }
+
+  const events: ActivityEvent[] = [];
+
+  // Gather creator userIds to look up names
+  const creatorIds = clubs.map(c => String(c.creatorId));
+  const creators = await User.find({ _id: { $in: creatorIds } }).select('firstName').lean();
+  const nameMap = new Map(creators.map(u => [String(u._id), u.firstName]));
+
+  for (const club of clubs) {
+    events.push({
+      type: 'created',
+      clubId: String(club._id),
+      clubName: club.name,
+      firstName: nameMap.get(String(club.creatorId)) ?? '',
+      isCurrentUser: String(club.creatorId) === uid,
+      date: new Date(club.createdAt).toISOString(),
+    });
+
+    for (const ev of club.joinHistory ?? []) {
+      events.push({
+        type: 'joined',
+        clubId: String(club._id),
+        clubName: club.name,
+        firstName: ev.firstName,
+        isCurrentUser: String(ev.userId) === uid,
+        date: new Date(ev.joinedAt).toISOString(),
+      });
+    }
+  }
+
+  events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  res.json(events.slice(0, 20));
+});
+
+// GET /api/v1/clubs/:id  — visible to any authenticated user; membership only required for leaderboard
 router.get('/:id', async (req: Request, res: Response) => {
   const id = req.params['id'] as string;
   if (!isValidObjectId(id)) {
@@ -48,12 +110,6 @@ router.get('/:id', async (req: Request, res: Response) => {
   const club = await Club.findById(id);
   if (!club) {
     res.status(404).json({ error: 'Club not found' });
-    return;
-  }
-
-  const isMember = club.memberIds.some((m) => String(m) === userId(req));
-  if (!isMember) {
-    res.status(403).json({ error: 'You are not a member of this club' });
     return;
   }
 
@@ -80,7 +136,13 @@ router.post('/:id/join', async (req: Request, res: Response) => {
     return;
   }
 
+  const joiner = await User.findById(userId(req)).select('firstName').lean();
   club.memberIds.push(new mongoose.Types.ObjectId(userId(req)));
+  club.joinHistory.push({
+    userId: new mongoose.Types.ObjectId(userId(req)),
+    firstName: joiner?.firstName ?? 'Unknown',
+    joinedAt: new Date(),
+  });
   await club.save();
 
   res.json(club);
@@ -114,6 +176,29 @@ router.delete('/:id/leave', async (req: Request, res: Response) => {
   club.memberIds = club.memberIds.filter((m) => String(m) !== userId(req));
   await club.save();
 
+  res.status(204).send();
+});
+
+// DELETE /api/v1/clubs/:id
+router.delete('/:id', async (req: Request, res: Response) => {
+  const id = req.params['id'] as string;
+  if (!isValidObjectId(id)) {
+    res.status(400).json({ error: 'Invalid club id' });
+    return;
+  }
+
+  const club = await Club.findById(id);
+  if (!club) {
+    res.status(404).json({ error: 'Club not found' });
+    return;
+  }
+
+  if (String(club.creatorId) !== userId(req)) {
+    res.status(403).json({ error: 'Only the club creator can delete this club' });
+    return;
+  }
+
+  await Club.findByIdAndDelete(id);
   res.status(204).send();
 });
 

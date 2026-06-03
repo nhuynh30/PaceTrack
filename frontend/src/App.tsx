@@ -7,6 +7,8 @@ import DashboardPage from './pages/DashboardPage';
 import RunHistoryPage from './pages/RunHistoryPage';
 import RunDetailPage from './pages/RunDetailPage';
 import TrackPage from './pages/TrackPage';
+import ClubsPage from './pages/ClubsPage';
+import ClubDetailPage from './pages/ClubDetailPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -58,6 +60,22 @@ export default function App() {
         element={
           <ProtectedRoute>
             <RunDetailPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/clubs"
+        element={
+          <ProtectedRoute>
+            <ClubsPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/clubs/:id"
+        element={
+          <ProtectedRoute>
+            <ClubDetailPage />
           </ProtectedRoute>
         }
       />
