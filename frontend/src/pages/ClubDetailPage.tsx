@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useClub, useLeaderboard } from '../hooks/useClubs';
 import type { LeaderboardRow } from '../hooks/useClubs';
 import { api } from '../lib/api';
+import { getSocket } from '../lib/socket';
 
 const BANNER_GRADIENTS = [
   'from-orange-500 to-orange-600',
@@ -31,6 +32,30 @@ export default function ClubDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [liveRows, setLiveRows] = useState<LeaderboardRow[] | null>(null);
+  const [flash, setFlash] = useState(false);
+  const displayRows = liveRows ?? rows;
+
+  useEffect(() => {
+    const socket = getSocket();
+    console.log('[socket] effect ran | isMember:', isMember, '| socket:', socket?.id ?? 'null', '| connected:', socket?.connected);
+    if (!isMember) return;
+    if (!socket) return;
+
+    function handleUpdate(data: { clubId: string; leaderboard: LeaderboardRow[] }) {
+      console.log('[socket] leaderboard:update received', data);
+      if (data.clubId !== id) {
+        console.log('[socket] clubId mismatch — ignoring. got:', data.clubId, 'expected:', id);
+        return;
+      }
+      setLiveRows(data.leaderboard);
+      setFlash(true);
+      setTimeout(() => setFlash(false), 4000);
+    }
+
+    socket.on('leaderboard:update', handleUpdate);
+    return () => { socket.off('leaderboard:update', handleUpdate); };
+  }, [isMember, id]);
 
   async function handleJoin() {
     setActionLoading(true);
@@ -221,7 +246,12 @@ export default function ClubDetailPage() {
               <div className="rounded-2xl bg-white border border-gray-100 shadow-sm overflow-hidden">
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-50">
                   <div>
-                    <p className="font-semibold text-gray-900">This Week's Leaderboard</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-gray-900">This Week's Leaderboard</p>
+                      <span className={`text-xs font-bold text-white bg-green-500 rounded-full px-3 py-1 transition-all duration-300 ${flash ? 'opacity-100 scale-100' : 'opacity-0 scale-75'}`}>
+                        ✓ Live update!
+                      </span>
+                    </div>
                     <p className="text-xs text-gray-400 mt-0.5">Mon – Sun · resets weekly</p>
                   </div>
                   <button
@@ -244,7 +274,7 @@ export default function ClubDetailPage() {
                   <p className="px-5 py-4 text-sm text-red-500">{lbError}</p>
                 )}
 
-                {!lbLoading && !lbError && rows.length === 0 && (
+                {!lbLoading && !lbError && displayRows.length === 0 && (
                   <div className="py-10 text-center">
                     <p className="text-2xl mb-2">🏁</p>
                     <p className="text-sm text-gray-400">No runs logged this week yet.</p>
@@ -257,8 +287,8 @@ export default function ClubDetailPage() {
                   </div>
                 )}
 
-                {!lbLoading && !lbError && rows.length > 0 && (
-                  <LeaderboardTable rows={rows} currentUserId={user?.id ?? ''} creatorId={club.creatorId} />
+                {!lbLoading && !lbError && displayRows.length > 0 && (
+                  <LeaderboardTable rows={displayRows} currentUserId={user?.id ?? ''} creatorId={club.creatorId} />
                 )}
               </div>
             </>

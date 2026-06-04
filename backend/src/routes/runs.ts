@@ -18,7 +18,7 @@ async function emitLeaderboardUpdates(userId: string): Promise<void> {
     clubs.map(async (club) => {
       const clubId = String(club._id);
       const leaderboard = await buildLeaderboard(clubId);
-      io.to(clubId).emit('leaderboard:update', leaderboard);
+      io.to(clubId).emit('leaderboard:update', { clubId, leaderboard });
     }),
   );
 }
@@ -119,7 +119,7 @@ router.post('/live', async (req: Request, res: Response) => {
   const start = new Date(startTime);
   const end = new Date(endTime);
   const durationSec = Math.max(1, Math.round((end.getTime() - start.getTime()) / 1000));
-  const distanceKm = totalDistanceKm(coordinates);
+  const distanceKm = Math.round(totalDistanceKm(coordinates) * 100) / 100;
 
   // Fetch elevations and sum only uphill gains — if the API fails, default to 0
   let elevationGainM = 0;

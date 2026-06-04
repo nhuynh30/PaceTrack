@@ -140,7 +140,7 @@ export default function RunDetailPage() {
 
           {/* Stats grid */}
           <div className="grid grid-cols-2 gap-4 mb-6">
-            <StatCard label="Distance" value={`${run.distanceKm} km`} />
+            <StatCard label="Distance" value={`${run.distanceKm.toFixed(2)} km`} />
             <StatCard label="Avg Pace" value={`${run.paceFormatted ?? '—'} /km`} highlight />
             <StatCard label="Duration" value={formatDuration(run.durationSec)} />
             <StatCard label="Run Type" value={run.type.charAt(0).toUpperCase() + run.type.slice(1)} />
