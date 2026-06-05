@@ -1,5 +1,6 @@
 import { createContext, useState, useEffect } from 'react';
 import { api, setApiToken } from '../lib/api';
+import { initSocket, disconnectSocket } from '../lib/socket';
 
 export interface UserInfo {
   id: string;
@@ -39,6 +40,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setApiToken(res.data.accessToken);
         setToken(res.data.accessToken);
         setUser(res.data.user);
+        initSocket(res.data.accessToken);
       })
       .catch(() => {
         // No valid session — user will need to log in
@@ -57,6 +59,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setApiToken(null);
           setToken(null);
           setUser(null);
+          disconnectSocket();
         }
         return Promise.reject(err);
       },
@@ -68,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setApiToken(newToken);
     setToken(newToken);
     setUser(newUser);
+    initSocket(newToken);
   }
 
   function logout() {
@@ -75,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setApiToken(null);
     setToken(null);
     setUser(null);
+    disconnectSocket();
   }
 
   return (

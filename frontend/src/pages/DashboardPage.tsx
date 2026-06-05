@@ -39,7 +39,7 @@ export default function DashboardPage() {
   const { runs, isLoading } = useRuns(20);
 
   const weekRuns = thisWeekRuns(runs);
-  const weekDistance = weekRuns.reduce((s, r) => s + r.distanceKm, 0);
+  const weekDistance = Math.round(weekRuns.reduce((s, r) => s + r.distanceKm, 0) * 10) / 10;
   const weekTime = weekRuns.reduce((s, r) => s + r.durationSec, 0);
   const recentRun = runs[0] ?? null;
 
@@ -162,7 +162,7 @@ export default function DashboardPage() {
                         </span>
                       </div>
                       <div className="mt-1 flex gap-3 text-xs text-gray-500">
-                        <span>{run.distanceKm} km</span>
+                        <span>{run.distanceKm.toFixed(2)} km</span>
                         <span>•</span>
                         <span className="text-orange-500 font-medium">{run.paceFormatted ?? '—'} /km</span>
                         <span>•</span>
@@ -264,7 +264,7 @@ function LastRunCard({ run, onNavigate }: { run: Run; onNavigate: () => void }) 
       <p className="font-semibold text-gray-900">{run.title}</p>
       <p className="text-xs text-gray-400 mt-0.5">{date}</p>
       <div className="mt-4 grid grid-cols-2 gap-3">
-        <StatBox label="Distance" value={`${run.distanceKm} km`} />
+        <StatBox label="Distance" value={`${run.distanceKm.toFixed(2)} km`} />
         <StatBox label="Avg Pace" value={`${run.paceFormatted ?? '—'} /km`} highlight />
         <StatBox label="Time" value={formatDuration(run.durationSec)} />
         <StatBox label="Type" value={run.type.charAt(0).toUpperCase() + run.type.slice(1)} />
