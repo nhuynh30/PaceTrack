@@ -120,7 +120,7 @@ Small groups where members race each other on weekly mileage. Real-time updates 
 | W3-FE-1 | **Club pages** – `/clubs`: list user's clubs + a "Create Club" form (name, description). `/clubs/:id`: club detail with member list and a join/leave button. Loading skeletons while data fetches. | M | W3-BE-1 | Done |
 | W3-FE-2 | **Weekly leaderboard table** – On club detail page: table with rank, name, weekly km, run count. Highlight the current user's row in teal. Show a "👑" icon for rank 1. Fetch from `GET /clubs/:id/leaderboard`. | M | W3-BE-2 | Done |
 | W3-FE-3 | **Real-time updates with Socket.io** – Connect to Socket.io on club detail page. On `leaderboard:update` event, update the leaderboard table without a page refresh. Show a brief "Updated!" flash. Disconnect on page leave. | M | W3-BE-3, W3-FE-2 | Done |
-| W3-FE-4 | **Personal records card** – On dashboard: a small "My PRs" card showing fastest pace, longest run, and best weekly mileage. Fetch from `GET /stats/prs`. | S | W3-BE-4 | - |
+| W3-FE-4 | **Personal records card** – On dashboard: a small "My PRs" card showing fastest pace, longest run, and best weekly mileage. Fetch from `GET /stats/prs`. | S | W3-BE-4 | Done |
 
 **Done when:** User can create/join a club, see a weekly leaderboard, and watch it update live when a clubmate finishes a run.
 
