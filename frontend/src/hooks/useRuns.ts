@@ -114,6 +114,46 @@ interface UseRunResult {
   error: string | null;
 }
 
+// ── Personal Records ────────────────────────────────────────────────────────
+
+export interface PRFastestPace {
+  runId: string;
+  title: string;
+  date: string;
+  paceFormatted: string | null;
+  paceSec: number;
+}
+
+export interface PRLongestRun {
+  runId: string;
+  title: string;
+  date: string;
+  distanceKm: number;
+}
+
+export interface PRsData {
+  fastestPace: PRFastestPace | null;
+  longestRun: PRLongestRun | null;
+  highestWeeklyKm: number | null;
+}
+
+export function usePRs(): { prs: PRsData | null; isLoading: boolean } {
+  const [prs, setPRs] = useState<PRsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.get<PRsData>('/stats/prs')
+      .then(r => { if (!cancelled) setPRs(r.data); })
+      .finally(() => { if (!cancelled) setIsLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  return { prs, isLoading };
+}
+
+// ── Single run ─────────────────────────────────────────────────────────────
+
 export function useRun(id: string): UseRunResult {
   const [run, setRun] = useState<Run | null>(null);
   const [isLoading, setIsLoading] = useState(true);
