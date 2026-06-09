@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MobileBottomNav from '../components/MobileBottomNav';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -125,7 +126,7 @@ export default function ClubsPage() {
           </button>
         </header>
 
-        <main className="flex-1 p-6 max-w-4xl w-full mx-auto">
+        <main className="flex-1 p-6 max-w-4xl w-full mx-auto pb-24 md:pb-6">
 
           {/* Breadcrumb + CTA */}
           <div className="flex items-center justify-between mb-6">
@@ -278,6 +279,7 @@ export default function ClubsPage() {
           </section>
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 }

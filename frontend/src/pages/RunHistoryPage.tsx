@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import MobileBottomNav from '../components/MobileBottomNav';
 import { useRuns, useRunStats } from '../hooks/useRuns';
 import type { Run, RunType } from '../hooks/useRuns';
 import { useAuth } from '../hooks/useAuth';
@@ -123,7 +124,7 @@ export default function RunHistoryPage() {
           </button>
         </header>
 
-        <main className="flex-1 p-6 max-w-4xl w-full mx-auto">
+        <main className="flex-1 p-6 max-w-4xl w-full mx-auto pb-24 md:pb-6">
 
           {/* Breadcrumb + CTA */}
           <div className="flex items-center justify-between mb-6">
@@ -231,6 +232,7 @@ export default function RunHistoryPage() {
           )}
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 }
