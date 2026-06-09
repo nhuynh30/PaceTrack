@@ -327,8 +327,10 @@ export default function TrackPage() {
   const handleConfirmSave = useCallback(async (currentCoords: Coord[], _elapsed: number) => {
     setSaveError(null);
 
-    if (currentCoords.length < 2 || !startTimeRef.current) {
-      navigate('/dashboard');
+    if (currentCoords.length < 2 || totalDistanceKm(currentCoords) < 0.1 || !startTimeRef.current) {
+      setSaveError('Run must be at least 0.1 km (100 m) to save.');
+      setTrackingState('paused');
+      setShowSummary(false);
       return;
     }
 
@@ -433,23 +435,51 @@ export default function TrackPage() {
               />
             </div>
 
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  setShowSummary(false);
-                  setTrackingState('paused');
-                }}
-                className="flex-1 rounded-2xl border border-slate-600 py-4 text-base font-bold text-white active:scale-95"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleConfirmSave(summaryCoords, summaryElapsed)}
-                className="flex-1 rounded-2xl bg-orange-500 py-4 text-base font-bold text-white active:scale-95"
-              >
-                Save Run
-              </button>
-            </div>
+            {totalDistanceKm(summaryCoords) < 0.1 && (
+              <p className="mb-4 rounded-xl bg-red-500/20 px-4 py-3 text-center text-sm text-red-400">
+                Run too short to save — minimum distance is 0.1 km (100 m).
+              </p>
+            )}
+
+            {totalDistanceKm(summaryCoords) < 0.1 ? (
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setShowSummary(false); setTrackingState('running'); startWatching(); }}
+                    className="flex-1 rounded-2xl bg-orange-500 py-4 text-base font-bold text-white active:scale-95"
+                  >
+                    Keep Running
+                  </button>
+                  <button
+                    onClick={() => navigate('/dashboard')}
+                    className="flex-1 rounded-2xl border border-red-500 py-4 text-base font-bold text-red-400 active:scale-95"
+                  >
+                    Discard Run
+                  </button>
+                </div>
+                <button
+                  disabled
+                  className="w-full rounded-2xl bg-orange-500 py-4 text-base font-bold text-white opacity-40 cursor-not-allowed"
+                >
+                  Save Run
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setShowSummary(false); setTrackingState('paused'); }}
+                  className="flex-1 rounded-2xl border border-slate-600 py-4 text-base font-bold text-white active:scale-95"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleConfirmSave(summaryCoords, summaryElapsed)}
+                  className="flex-1 rounded-2xl bg-orange-500 py-4 text-base font-bold text-white active:scale-95"
+                >
+                  Save Run
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

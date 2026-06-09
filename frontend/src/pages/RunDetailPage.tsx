@@ -15,6 +15,13 @@ const TYPE_COLORS: Record<RunType, string> = {
   race:  'bg-rose-100 text-rose-700',
 };
 
+const TYPE_DESCRIPTIONS: Record<RunType, string> = {
+  easy:  'Comfortable, conversational pace. You should be able to speak in full sentences. Good for recovery and base building.',
+  tempo: 'Comfortably hard. Threshold pace where you can speak only in short phrases. Builds speed and lactate threshold.',
+  long:  'Long slow distance at easy pace. Builds aerobic endurance. Usually your longest run of the week.',
+  race:  'All-out competition effort. Maximum exertion — save this for race day.',
+};
+
 function formatDuration(sec: number): string {
   const h = Math.floor(sec / 3600);
   const m = Math.floor((sec % 3600) / 60);
@@ -30,12 +37,28 @@ export default function RunDetailPage() {
   const { run, isLoading, error } = useRun(id!);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleInput, setTitleInput] = useState('');
+  const [savingTitle, setSavingTitle] = useState(false);
+
+  async function handleSaveTitle() {
+    const trimmed = titleInput.trim();
+    if (!trimmed || trimmed === run?.title) { setEditingTitle(false); return; }
+    setSavingTitle(true);
+    try {
+      await api.put(`/runs/${id}`, { title: trimmed });
+      run!.title = trimmed;
+    } finally {
+      setSavingTitle(false);
+      setEditingTitle(false);
+    }
+  }
 
   async function handleDelete() {
     setDeleting(true);
     try {
       await api.delete(`/runs/${id}`);
-      navigate('/runs', { replace: true });
+      navigate(-1);
     } catch {
       setDeleting(false);
       setConfirmDelete(false);
@@ -104,32 +127,63 @@ export default function RunDetailPage() {
 
           {/* Title */}
           <div className="flex items-start justify-between gap-4 mb-1">
-            <h1 className="text-2xl font-bold text-gray-900 leading-tight">{run.title}</h1>
+            {editingTitle ? (
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <input
+                  autoFocus
+                  value={titleInput}
+                  onChange={e => setTitleInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleSaveTitle(); if (e.key === 'Escape') setEditingTitle(false); }}
+                  className="flex-1 min-w-0 text-2xl font-bold text-gray-900 border-b-2 border-orange-400 bg-transparent outline-none"
+                />
+                <button onClick={handleSaveTitle} disabled={savingTitle} className="shrink-0 text-xs font-semibold text-orange-500 hover:text-orange-600 disabled:opacity-50">
+                  {savingTitle ? 'Saving…' : 'Save'}
+                </button>
+                <button onClick={() => setEditingTitle(false)} className="shrink-0 text-xs text-gray-400 hover:text-gray-600">
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2 min-w-0">
+                <h1 className="text-2xl font-bold text-gray-900 leading-tight truncate">{run.title}</h1>
+                <button
+                  onClick={() => { setTitleInput(run.title); setEditingTitle(true); }}
+                  className="shrink-0 text-gray-400 hover:text-orange-400 transition"
+                  title="Rename run"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                  </svg>
+                </button>
+              </div>
+            )}
+
             <div className="flex items-center gap-2 shrink-0">
-              <span className={`mt-1 rounded-full px-3 py-1 text-xs font-medium ${TYPE_COLORS[run.type]}`}>
-                {run.type.charAt(0).toUpperCase() + run.type.slice(1)}
-              </span>
+              {/* Type badge with info tooltip */}
+              <div className="relative mt-1 group">
+                <span className={`rounded-full px-3 py-1 text-xs font-medium cursor-default ${TYPE_COLORS[run.type]}`}>
+                  {run.type.charAt(0).toUpperCase() + run.type.slice(1)} ⓘ
+                </span>
+                <div className="absolute right-0 top-8 z-10 w-64 rounded-xl bg-gray-900 px-4 py-3 text-xs text-gray-200 shadow-xl hidden group-hover:block">
+                  <p className="font-semibold mb-1">{run.type.charAt(0).toUpperCase() + run.type.slice(1)}</p>
+                  <p className="leading-relaxed">{TYPE_DESCRIPTIONS[run.type]}</p>
+                </div>
+              </div>
+
               {!confirmDelete && (
                 <button
                   onClick={() => setConfirmDelete(true)}
-                  className="mt-1 rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-400 hover:border-red-200 hover:text-red-500 transition"
+                  className="mt-1 rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-500 hover:border-red-200 hover:text-red-500 transition"
                 >
                   Delete
                 </button>
               )}
               {confirmDelete && (
                 <div className="mt-1 flex items-center gap-1.5">
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white hover:bg-red-600 transition disabled:opacity-50"
-                  >
+                  <button onClick={handleDelete} disabled={deleting} className="rounded-full bg-red-500 px-3 py-1 text-xs font-bold text-white hover:bg-red-600 transition disabled:opacity-50">
                     {deleting ? '…' : 'Yes, delete'}
                   </button>
-                  <button
-                    onClick={() => setConfirmDelete(false)}
-                    className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-400 hover:text-gray-600 transition"
-                  >
+                  <button onClick={() => setConfirmDelete(false)} className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-400 hover:text-gray-600 transition">
                     Cancel
                   </button>
                 </div>

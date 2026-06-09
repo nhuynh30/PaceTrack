@@ -48,18 +48,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .finally(() => setIsLoading(false));
   }, []);
 
-  // Global 401 interceptor: any protected API call that gets a 401 (expired
-  // access token that wasn't refreshed in time) clears the session so
-  // ProtectedRoute immediately redirects to /login.
+  // Global 401 interceptor: try to silently refresh the access token first.
+  // Only log out if the refresh itself fails (cookie missing or expired).
   useEffect(() => {
     const id = api.interceptors.response.use(
       res => res,
-      err => {
-        if (err?.response?.status === 401) {
-          setApiToken(null);
-          setToken(null);
-          setUser(null);
-          disconnectSocket();
+      async (err) => {
+        const original = err.config;
+        if (err?.response?.status === 401 && !original._retry) {
+          original._retry = true;
+          try {
+            const res = await api.post<{ accessToken: string; user: UserInfo }>('/auth/refresh');
+            setApiToken(res.data.accessToken);
+            setToken(res.data.accessToken);
+            setUser(res.data.user);
+            initSocket(res.data.accessToken);
+            original.headers.Authorization = `Bearer ${res.data.accessToken}`;
+            return api(original);
+          } catch {
+            setApiToken(null);
+            setToken(null);
+            setUser(null);
+            disconnectSocket();
+          }
         }
         return Promise.reject(err);
       },

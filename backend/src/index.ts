@@ -4,6 +4,7 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { Server } from 'socket.io';
 import { connectDB } from './db';
 import healthRouter from './routes/health';
@@ -22,6 +23,31 @@ import { AuthPayload } from './middleware/auth';
 const app = express();
 const PORT = process.env['PORT'] ?? 8000;
 
+// ── Rate limiters ─────────────────────────────────────────────────────────────
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
+const uploadLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many upload requests, please slow down.' },
+});
+
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' },
+});
+
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors({
   origin: [
@@ -38,12 +64,12 @@ app.use(cookieParser());
 // ── Routes ────────────────────────────────────────────────────────────────────
 app.use('/', rootRouter);
 app.use('/api/v1', healthRouter);
-app.use('/api/v1/auth', authRouter);
-app.use('/api/v1/runs', runsRouter);
-app.use('/api/v1/elevation', elevationRouter);
-app.use('/api/v1/upload', uploadRouter);
-app.use('/api/v1/clubs', clubsRouter);
-app.use('/api/v1/stats', statsRouter);
+app.use('/api/v1/auth', authLimiter, authRouter);
+app.use('/api/v1/runs', apiLimiter, runsRouter);
+app.use('/api/v1/elevation', apiLimiter, elevationRouter);
+app.use('/api/v1/upload', uploadLimiter, uploadRouter);
+app.use('/api/v1/clubs', apiLimiter, clubsRouter);
+app.use('/api/v1/stats', apiLimiter, statsRouter);
 
 // ── Error handling ────────────────────────────────────────────────────────────
 app.use(notFound);
