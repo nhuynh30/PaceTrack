@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import mongoose from 'mongoose';
+import rateLimit from 'express-rate-limit';
 import { Run, RunType } from '../models/Run';
 import { Club } from '../models/Club';
 import { authMiddleware } from '../middleware/auth';
@@ -10,6 +11,17 @@ import { buildLeaderboard } from '../services/leaderboard';
 
 const router = Router();
 router.use(authMiddleware);
+
+// Mapbox charges per map load — each GET /:id with a routeGeoJSON triggers one.
+// Key by user ID (auth already ran) so the limit is per account, not per IP.
+const mapboxLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 30,
+  keyGenerator: (req) => req.user!.sub,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many map requests, please slow down.' },
+});
 
 async function emitLeaderboardUpdates(userId: string): Promise<void> {
   const clubs = await Club.find({ memberIds: userId }).select('_id').lean();
@@ -100,7 +112,7 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 // POST /api/v1/runs/live
-router.post('/live', async (req: Request, res: Response) => {
+router.post('/live', mapboxLimiter, async (req: Request, res: Response) => {
   const { coordinates, startTime, endTime } = req.body as {
     coordinates?: { lat: number; lng: number; timestamp: string }[];
     startTime?: string;
@@ -120,6 +132,11 @@ router.post('/live', async (req: Request, res: Response) => {
   const end = new Date(endTime);
   const durationSec = Math.max(1, Math.round((end.getTime() - start.getTime()) / 1000));
   const distanceKm = Math.round(totalDistanceKm(coordinates) * 100) / 100;
+
+  if (distanceKm < 0.1) {
+    res.status(400).json({ error: 'Run must be at least 0.1 km (100 metres) to save.' });
+    return;
+  }
 
   // Fetch elevations and sum only uphill gains — if the API fails, default to 0
   let elevationGainM = 0;
@@ -160,7 +177,7 @@ router.post('/live', async (req: Request, res: Response) => {
 });
 
 // GET /api/v1/runs/:id
-router.get('/:id', async (req: Request, res: Response) => {
+router.get('/:id', mapboxLimiter, async (req: Request, res: Response) => {
   const id = req.params['id'] as string;
   if (!isValidObjectId(id)) {
     res.status(400).json({ error: 'Invalid run id' });

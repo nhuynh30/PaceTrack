@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { useRuns } from '../hooks/useRuns';
 import type { Run, RunType } from '../hooks/useRuns';
+import { api } from '../lib/api';
 
 const TYPE_COLORS: Record<RunType, string> = {
   easy:  'bg-sky-100 text-sky-700',
@@ -36,12 +38,25 @@ function thisWeekRuns(runs: Run[]): Run[] {
 export default function DashboardPage() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const { runs, isLoading } = useRuns(20);
+  const { runs, isLoading, refresh } = useRuns(20);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const weekRuns = thisWeekRuns(runs);
   const weekDistance = Math.round(weekRuns.reduce((s, r) => s + r.distanceKm, 0) * 10) / 10;
   const weekTime = weekRuns.reduce((s, r) => s + r.durationSec, 0);
   const recentRun = runs[0] ?? null;
+
+  async function handleDelete(runId: string) {
+    setDeletingId(runId);
+    try {
+      await api.delete(`/runs/${runId}`);
+      refresh();
+    } finally {
+      setDeletingId(null);
+      setConfirmDeleteId(null);
+    }
+  }
 
   function handleLogout() {
     logout();
@@ -150,25 +165,59 @@ export default function DashboardPage() {
               ) : (
                 <div className="space-y-3">
                   {runs.slice(0, 5).map((run) => (
-                    <button
+                    <div
                       key={run._id}
-                      onClick={() => navigate(`/runs/${run._id}`)}
-                      className="w-full text-left rounded-xl border border-gray-100 p-3 hover:border-orange-200 hover:bg-orange-50 transition"
+                      className="rounded-xl border border-gray-100 p-3 hover:border-orange-200 hover:bg-orange-50 transition"
                     >
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-semibold text-gray-900 truncate">{run.title}</p>
-                        <span className={`ml-2 shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[run.type]}`}>
-                          {run.type}
-                        </span>
+                        <button
+                          onClick={() => navigate(`/runs/${run._id}`)}
+                          className="flex-1 min-w-0 text-left flex items-center gap-2"
+                        >
+                          <p className="text-sm font-semibold text-gray-900 truncate">{run.title}</p>
+                          <span className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-medium ${TYPE_COLORS[run.type]}`}>
+                            {run.type}
+                          </span>
+                        </button>
+                        {confirmDeleteId === run._id ? (
+                          <div className="flex items-center gap-1.5 ml-2 shrink-0">
+                            <button
+                              onClick={() => handleDelete(run._id)}
+                              disabled={deletingId === run._id}
+                              className="rounded-full bg-red-500 px-2 py-0.5 text-xs font-bold text-white hover:bg-red-600 disabled:opacity-50"
+                            >
+                              {deletingId === run._id ? '…' : 'Yes'}
+                            </button>
+                            <button
+                              onClick={() => setConfirmDeleteId(null)}
+                              className="rounded-full border border-gray-200 px-2 py-0.5 text-xs text-gray-400 hover:text-gray-600"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteId(run._id)}
+                            className="ml-2 shrink-0 text-gray-400 hover:text-red-400 transition"
+                            title="Delete run"
+                          >
+                            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                            </svg>
+                          </button>
+                        )}
                       </div>
-                      <div className="mt-1 flex gap-3 text-xs text-gray-500">
+                      <button
+                        onClick={() => navigate(`/runs/${run._id}`)}
+                        className="mt-1 flex gap-3 text-xs text-gray-500 w-full text-left"
+                      >
                         <span>{run.distanceKm.toFixed(2)} km</span>
                         <span>•</span>
                         <span className="text-orange-500 font-medium">{run.paceFormatted ?? '—'} /km</span>
                         <span>•</span>
                         <span>{new Date(run.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-                      </div>
-                    </button>
+                      </button>
+                    </div>
                   ))}
                 </div>
               )}
