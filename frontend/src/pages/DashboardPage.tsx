@@ -161,7 +161,11 @@ export default function DashboardPage() {
                 </div>
               ) : runs.length === 0 ? (
                 <div className="py-8 text-center text-gray-400 text-sm">
-                  No runs yet. Hit <span className="text-orange-500 font-medium">Start Run</span> to begin!
+                  No runs yet. Hit{' '}
+                  <button onClick={() => navigate('/track')} className="text-orange-500 font-medium underline-offset-2 hover:underline">
+                    Start Run
+                  </button>{' '}
+                  to begin!
                 </div>
               ) : (
                 <div className="space-y-3">

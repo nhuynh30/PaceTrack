@@ -275,10 +275,11 @@ function RunCard({ run, onClick }: { run: Run; onClick: () => void }) {
           </span>
         )}
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-4 gap-3">
         <MetricBlock label="Distance" value={run.distanceKm.toFixed(2)} unit="km" />
         <MetricBlock label="Pace" value={run.paceFormatted ?? '—'} unit="/km" highlight />
         <MetricBlock label="Time" value={formatDuration(run.durationSec)} />
+        <MetricBlock label="Calories" value={run.caloriesBurnt ? `${run.caloriesBurnt}` : '—'} unit="kcal" />
       </div>
     </button>
   );

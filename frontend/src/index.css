@@ -12,6 +12,11 @@ body {
   min-height: 100svh;
 }
 
+.mapboxgl-map img,
+.mapboxgl-map canvas {
+  max-width: none;
+}
+
 @keyframes slide-up {
   from {
     opacity: 0;
