@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import MobileBottomNav from '../components/MobileBottomNav';
 import { useAuth } from '../hooks/useAuth';
 import { useClub, useLeaderboard } from '../hooks/useClubs';
 import type { LeaderboardRow } from '../hooks/useClubs';
@@ -146,7 +147,7 @@ export default function ClubDetailPage() {
           </button>
         </header>
 
-        <main className="flex-1 p-6 max-w-3xl w-full mx-auto">
+        <main className="flex-1 p-6 max-w-3xl w-full mx-auto pb-24 md:pb-6">
           <button onClick={() => navigate('/clubs')} className="text-sm text-gray-400 hover:text-orange-500 mb-4 block">
             ← Clubs
           </button>
@@ -295,6 +296,7 @@ export default function ClubDetailPage() {
           )}
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 }

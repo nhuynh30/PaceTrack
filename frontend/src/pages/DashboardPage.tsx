@@ -4,6 +4,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useRuns } from '../hooks/useRuns';
 import type { Run, RunType } from '../hooks/useRuns';
 import { api } from '../lib/api';
+import MobileBottomNav from '../components/MobileBottomNav';
 
 const TYPE_COLORS: Record<RunType, string> = {
   easy:  'bg-sky-100 text-sky-700',
@@ -112,7 +113,7 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        <main className="flex-1 p-6 max-w-5xl w-full mx-auto">
+        <main className="flex-1 p-6 max-w-5xl w-full mx-auto pb-24 md:pb-6">
           {/* Greeting */}
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -245,6 +246,7 @@ export default function DashboardPage() {
           </div>
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 }

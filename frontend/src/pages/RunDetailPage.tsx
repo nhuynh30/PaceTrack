@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import MobileBottomNav from '../components/MobileBottomNav';
 import mapboxgl from 'mapbox-gl';
 import { useRun } from '../hooks/useRuns';
 import type { RunType, GeoJSONLineString } from '../hooks/useRuns';
@@ -116,7 +117,7 @@ export default function RunDetailPage() {
           </button>
         </header>
 
-        <main className="flex-1 p-6 max-w-2xl w-full mx-auto">
+        <main className="flex-1 p-6 max-w-2xl w-full mx-auto pb-24 md:pb-6">
           {/* Back */}
           <button
             onClick={() => navigate('/runs')}
@@ -240,6 +241,7 @@ export default function RunDetailPage() {
           )}
         </main>
       </div>
+      <MobileBottomNav />
     </div>
   );
 }
