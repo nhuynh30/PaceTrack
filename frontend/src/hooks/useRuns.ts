@@ -19,6 +19,7 @@ export interface Run {
   type: RunType;
   notes?: string;
   elevationGainM?: number;
+  caloriesBurnt?: number;
   gpxFileUrl?: string;
   coordinatesCount?: number;
   routeGeoJSON?: GeoJSONLineString;
