@@ -1,0 +1,103 @@
+import { createContext, useState, useEffect } from 'react';
+import { api, setApiToken } from '../lib/api';
+import { initSocket, disconnectSocket } from '../lib/socket';
+
+export interface UserInfo {
+  id: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+}
+
+interface AuthState {
+  token: string | null;
+  user: UserInfo | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (token: string, user: UserInfo) => void;
+  logout: () => void;
+}
+
+export const AuthContext = createContext<AuthState>({
+  token: null,
+  user: null,
+  isAuthenticated: false,
+  isLoading: true,
+  login: () => {},
+  logout: () => {},
+});
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // On mount: attempt to restore session via the HTTP-only refresh token cookie.
+  // If the cookie is missing or expired the call 401s and we stay logged out.
+  useEffect(() => {
+    api.post<{ accessToken: string; user: UserInfo }>('/auth/refresh')
+      .then(res => {
+        setApiToken(res.data.accessToken);
+        setToken(res.data.accessToken);
+        setUser(res.data.user);
+        initSocket(res.data.accessToken);
+      })
+      .catch(() => {
+        // No valid session — user will need to log in
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  // Global 401 interceptor: try to silently refresh the access token first.
+  // Only log out if the refresh itself fails (cookie missing or expired).
+  useEffect(() => {
+    const id = api.interceptors.response.use(
+      res => res,
+      async (err) => {
+        const original = err.config;
+        if (err?.response?.status === 401 && !original._retry) {
+          original._retry = true;
+          try {
+            const res = await api.post<{ accessToken: string; user: UserInfo }>('/auth/refresh');
+            setApiToken(res.data.accessToken);
+            setToken(res.data.accessToken);
+            setUser(res.data.user);
+            initSocket(res.data.accessToken);
+            original.headers.Authorization = `Bearer ${res.data.accessToken}`;
+            return api(original);
+          } catch {
+            setApiToken(null);
+            setToken(null);
+            setUser(null);
+            disconnectSocket();
+          }
+        }
+        return Promise.reject(err);
+      },
+    );
+    return () => api.interceptors.response.eject(id);
+  }, []);
+
+  function login(newToken: string, newUser: UserInfo) {
+    setApiToken(newToken);
+    setToken(newToken);
+    setUser(newUser);
+    initSocket(newToken);
+  }
+
+  function logout() {
+    api.post('/auth/logout').catch(() => {});
+    setApiToken(null);
+    setToken(null);
+    setUser(null);
+    disconnectSocket();
+  }
+
+  return (
+    <AuthContext.Provider
+      value={{ token, user, isAuthenticated: token !== null, isLoading, login, logout }}
+    >
+      {children}
+    </AuthContext.Provider>
+  );
+}
