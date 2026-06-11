@@ -23,6 +23,12 @@ import { AuthPayload } from './middleware/auth';
 const app = express();
 const PORT = process.env['PORT'] ?? 8000;
 
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://192.168.1.102:5173',
+  ...(process.env['ALLOWED_ORIGINS'] ? process.env['ALLOWED_ORIGINS'].split(',') : []),
+];
+
 // ── Rate limiters ─────────────────────────────────────────────────────────────
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -50,11 +56,7 @@ const apiLimiter = rateLimit({
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://192.168.1.102:5173',
-    'https://angular-improve-armrest.ngrok-free.dev',
-  ],
+  origin: ALLOWED_ORIGINS,
   credentials: true,
 }));
 app.use(express.json());
@@ -83,11 +85,7 @@ async function start() {
 
   const io = new Server(httpServer, {
     cors: {
-      origin: [
-        'http://localhost:5173',
-        'http://192.168.1.102:5173',
-        'https://angular-improve-armrest.ngrok-free.dev',
-      ],
+      origin: ALLOWED_ORIGINS,
       credentials: true,
     },
   });
