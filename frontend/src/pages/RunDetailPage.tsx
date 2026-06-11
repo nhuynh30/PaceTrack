@@ -199,6 +199,9 @@ export default function RunDetailPage() {
             <StatCard label="Avg Pace" value={`${run.paceFormatted ?? '—'} /km`} highlight />
             <StatCard label="Duration" value={formatDuration(run.durationSec)} />
             <StatCard label="Run Type" value={run.type.charAt(0).toUpperCase() + run.type.slice(1)} />
+            {run.caloriesBurnt != null && run.caloriesBurnt > 0 && (
+              <StatCard label="Calories" value={`${run.caloriesBurnt} kcal`} />
+            )}
             {run.elevationGainM != null && run.elevationGainM > 0 && (
               <StatCard label="Elevation Gain" value={`+${Math.round(run.elevationGainM)} m`} />
             )}

@@ -125,7 +125,15 @@ export default function TrackPage() {
       center: [106.6297, 10.8231],
     });
 
+    const geolocate = new mapboxgl.GeolocateControl({
+      positionOptions: { enableHighAccuracy: true },
+      trackUserLocation: true,
+      showUserHeading: true,
+    });
+    map.current.addControl(geolocate);
+
     map.current.on('load', () => {
+      map.current!.resize();
       map.current!.addSource('route', {
         type: 'geojson',
         data: {
@@ -142,17 +150,9 @@ export default function TrackPage() {
         layout: { 'line-join': 'round', 'line-cap': 'round' },
         paint: { 'line-color': '#f97316', 'line-width': 5 },
       });
-    });
 
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        map.current?.flyTo({
-          center: [pos.coords.longitude, pos.coords.latitude],
-          zoom: 16,
-        });
-      },
-      () => {},
-    );
+      geolocate.trigger();
+    });
 
     return () => {
       map.current?.remove();
@@ -379,11 +379,21 @@ export default function TrackPage() {
   const distanceKm = totalDistanceKm(coords);
   const pace = rollingPace(coords, elapsedSec);
 
+  const liveCalories = Math.round(distanceKm * 1.036 * 70);
+
+  const speedKmh = (() => {
+    const parts = pace.match(/^(\d+):(\d+)$/);
+    if (!parts) return '--';
+    const secPerKm = parseInt(parts[1]) * 60 + parseInt(parts[2]);
+    if (secPerKm === 0) return '--';
+    return (3600 / secPerKm).toFixed(1);
+  })();
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="relative h-svh w-screen overflow-hidden">
-      <div ref={mapContainer} className="absolute inset-0" />
+      <div ref={mapContainer} style={{ position: 'absolute', inset: 0 }} />
 
       {/* Back button */}
       <button
@@ -490,6 +500,8 @@ export default function TrackPage() {
           <StatCard label="Distance" value={distanceKm.toFixed(2)} unit="km" />
           <StatCard label="Pace (500m)" value={pace} unit="min / km" />
           <StatCard label="Time" value={formatTime(elapsedSec)} unit="elapsed" />
+          <StatCard label="Speed" value={speedKmh} unit="km / h" />
+          <StatCard label="Calories" value={liveCalories > 0 ? `${liveCalories}` : '--'} unit="kcal" />
           <StatCard
             label="Elevation"
             value={liveElevationGainM > 0 ? `+${Math.round(liveElevationGainM)}` : '--'}

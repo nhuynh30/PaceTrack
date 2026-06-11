@@ -66,6 +66,7 @@ router.post('/', async (req: Request, res: Response) => {
     notes,
     distanceKm,
     durationSec,
+    caloriesBurnt: Math.round(distanceKm * 1.036 * 70),
     type,
   });
 
@@ -156,6 +157,8 @@ router.post('/live', mapboxLimiter, async (req: Request, res: Response) => {
     month: 'short', day: 'numeric', year: 'numeric',
   })}`;
 
+  const caloriesBurnt = Math.round(distanceKm * 1.036 * 70);
+
   const run = await Run.create({
     userId: ownerId(req),
     date: start,
@@ -163,6 +166,7 @@ router.post('/live', mapboxLimiter, async (req: Request, res: Response) => {
     distanceKm,
     durationSec,
     elevationGainM,
+    caloriesBurnt,
     coordinatesCount: coordinates.length,
     routeGeoJSON: {
       type: 'LineString',

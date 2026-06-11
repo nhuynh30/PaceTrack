@@ -28,6 +28,8 @@ export interface IRun extends Document {
   /** GeoJSON LineString of the route for map rendering. */
   routeGeoJSON?: IGeoJSONLineString;
   type: RunType;
+  /** Estimated calories burned (kcal). Computed as distance × 1.036 × 70 kg. */
+  caloriesBurnt?: number;
 }
 
 const runSchema = new Schema<IRun>(
@@ -51,6 +53,7 @@ const runSchema = new Schema<IRun>(
       coordinates: { type: [[Number]] },
     },
     type: { type: String, enum: ['easy', 'tempo', 'long', 'race'], required: true },
+    caloriesBurnt: { type: Number },
   },
   {
     timestamps: true,
