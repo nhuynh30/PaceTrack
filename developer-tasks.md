@@ -33,7 +33,7 @@ A running tracker with live GPS and club leaderboards. Built with React + Expres
 
 | Week                     | You (Backend)       | Friend (Frontend)   | Status      |
 | ------------------------ | ------------------- | ------------------- | ----------- |
-| W1 – Foundation          | Not started (0/5)   | Not started (0/5)   | Not started |
+| W1 – Foundation          | Done (5/5)          | Done        (5/5)   | Done        |
 | W2 – Live GPS            | Not started (0/4)   | Not started (0/4)   | Not started |
 | W3 – Clubs & Leaderboard | Not started (0/4)   | Not started (0/4)   | Not started |
 | W4 – Deploy & Polish     | Not started (0/3)   | Not started (0/3)   | Not started |
