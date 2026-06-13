@@ -8,7 +8,7 @@ A full-stack running tracker — log workouts, watch your pace compute automatic
 
 ## Screenshots
 
-| Tracking Screen | Club Leaderboard |
+| Dashboard Screen | Club Leaderboard |
 |---|---|
 | ![Tracking](docs/screenshot-track.png) | ![Leaderboard](docs/screenshot-leaderboard.png) |
 
@@ -98,33 +98,6 @@ npm run dev            # http://localhost:5173
 VITE_API_URL=http://localhost:8000/api/v1
 VITE_MAPBOX_TOKEN=pk.your_mapbox_public_token
 ```
-
----
-
-## Deploy
-
-### Backend → Render
-
-1. [render.com](https://render.com) → **New → Web Service** → connect your GitHub repo
-2. **Root directory:** `backend`
-3. **Build command:** `npm install && npm run build`
-4. **Start command:** `node dist/index.js`
-5. Add all backend env vars in the **Environment** tab, and set:
-   ```
-   ALLOWED_ORIGINS=https://your-app.vercel.app
-   ```
-6. Note the deployed URL (e.g. `https://pacetrack.onrender.com`)
-
-### Frontend → Vercel
-
-1. [vercel.com](https://vercel.com) → **New Project** → import the repo
-2. **Root directory:** `frontend`
-3. **Environment variables:**
-   ```
-   VITE_API_URL=https://pacetrack.onrender.com/api/v1
-   VITE_MAPBOX_TOKEN=pk.your_mapbox_public_token
-   ```
-4. **Production branch:** `main` — Vercel auto-deploys on every push
 
 ---
 
