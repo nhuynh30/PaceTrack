@@ -495,12 +495,12 @@ export default function TrackPage() {
       )}
 
       {/* HUD */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 rounded-t-3xl bg-slate-950/90 px-5 pt-5 pb-10 backdrop-blur-md">
-        <div className="mb-5 grid grid-cols-2 gap-3">
+      <div className="absolute bottom-0 left-0 right-0 z-10 rounded-t-3xl bg-slate-950/90 px-4 pt-4 pb-[env(safe-area-inset-bottom,24px)] backdrop-blur-md">
+        <div className="mb-3 grid grid-cols-3 gap-2">
           <StatCard label="Distance" value={distanceKm.toFixed(2)} unit="km" />
-          <StatCard label="Pace (500m)" value={pace} unit="min / km" />
+          <StatCard label="Pace" value={pace} unit="min/km" />
           <StatCard label="Time" value={formatTime(elapsedSec)} unit="elapsed" />
-          <StatCard label="Speed" value={speedKmh} unit="km / h" />
+          <StatCard label="Speed" value={speedKmh} unit="km/h" />
           <StatCard label="Calories" value={liveCalories > 0 ? `${liveCalories}` : '--'} unit="kcal" />
           <StatCard
             label="Elevation"
@@ -569,10 +569,10 @@ export default function TrackPage() {
 
 function StatCard({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
-    <div className="rounded-2xl bg-slate-800/60 px-4 py-3">
-      <p className="text-xs font-medium uppercase tracking-widest text-slate-400">{label}</p>
-      <p className="mt-1 text-2xl font-bold text-white">{value}</p>
-      <p className="text-xs text-slate-500">{unit}</p>
+    <div className="rounded-xl bg-slate-800/60 px-3 py-2.5">
+      <p className="text-[9px] font-semibold uppercase tracking-widest text-slate-400">{label}</p>
+      <p className="mt-0.5 text-lg font-bold text-white leading-tight">{value}</p>
+      <p className="text-[10px] text-slate-500">{unit}</p>
     </div>
   );
 }
