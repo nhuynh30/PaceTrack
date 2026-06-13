@@ -33,6 +33,9 @@ export default function ClubDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameLoading, setRenameLoading] = useState(false);
   const [liveRows, setLiveRows] = useState<LeaderboardRow[] | null>(null);
   const [flash, setFlash] = useState(false);
   const displayRows = liveRows ?? rows;
@@ -83,6 +86,23 @@ export default function ClubDetailPage() {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setActionError(msg ?? 'Failed to leave club.');
       setActionLoading(false);
+    }
+  }
+
+  async function handleRename() {
+    if (!renameValue.trim()) return;
+    setRenameLoading(true);
+    setActionError(null);
+    try {
+      await api.patch(`/clubs/${id}`, { name: renameValue.trim() });
+      refreshClub();
+      setRenaming(false);
+      setRenameValue('');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setActionError(msg ?? 'Failed to rename club.');
+    } finally {
+      setRenameLoading(false);
     }
   }
 
@@ -208,13 +228,49 @@ export default function ClubDetailPage() {
                         {actionLoading ? 'Leaving…' : 'Leave'}
                       </button>
                     )}
-                    {isCreator && !confirmDelete && (
-                      <button
-                        onClick={() => setConfirmDelete(true)}
-                        className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500/40 transition"
-                      >
-                        Delete Club
-                      </button>
+                    {isCreator && !confirmDelete && !renaming && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setRenaming(true); setRenameValue(club!.name); }}
+                          className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition"
+                        >
+                          Rename
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(true)}
+                          className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500/40 transition"
+                        >
+                          Delete Club
+                        </button>
+                      </div>
+                    )}
+                    {isCreator && renaming && (
+                      <div className="flex flex-col items-end gap-1.5">
+                        <input
+                          autoFocus
+                          value={renameValue}
+                          onChange={e => setRenameValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setRenaming(false); }}
+                          className="rounded-lg bg-white/10 border border-white/30 px-3 py-1.5 text-xs text-white placeholder-white/50 outline-none focus:border-white/60 w-44"
+                          placeholder="New club name"
+                          maxLength={50}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleRename}
+                            disabled={renameLoading || !renameValue.trim()}
+                            className="rounded-full bg-white px-3 py-1 text-xs font-bold text-orange-500 hover:bg-white/90 transition disabled:opacity-50"
+                          >
+                            {renameLoading ? '…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setRenaming(false)}
+                            className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
                     )}
                     {isCreator && confirmDelete && (
                       <div className="flex flex-col items-end gap-1.5">

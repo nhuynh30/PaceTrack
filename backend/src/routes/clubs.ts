@@ -180,6 +180,36 @@ router.delete('/:id/leave', async (req: Request, res: Response) => {
 });
 
 // DELETE /api/v1/clubs/:id
+// PATCH /api/v1/clubs/:id — rename club (creator only)
+router.patch('/:id', async (req: Request, res: Response) => {
+  const id = req.params['id'] as string;
+  if (!isValidObjectId(id)) {
+    res.status(400).json({ error: 'Invalid club id' });
+    return;
+  }
+
+  const { name } = req.body as { name?: string };
+  if (!name || !name.trim()) {
+    res.status(400).json({ error: 'name is required' });
+    return;
+  }
+
+  const club = await Club.findById(id);
+  if (!club) {
+    res.status(404).json({ error: 'Club not found' });
+    return;
+  }
+
+  if (String(club.creatorId) !== userId(req)) {
+    res.status(403).json({ error: 'Only the club creator can rename this club' });
+    return;
+  }
+
+  club.name = name.trim();
+  await club.save();
+  res.json(club);
+});
+
 router.delete('/:id', async (req: Request, res: Response) => {
   const id = req.params['id'] as string;
   if (!isValidObjectId(id)) {
