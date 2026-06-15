@@ -122,8 +122,8 @@ PaceTrack/
 
 ## Authors
 
-- **Quan Huynh** — Backend, API, database, deployment
-- **Huy Pham** — Frontend, UI, maps
+- **Quan Huynh**
+- **Huy Pham** 
 
 ---
 
