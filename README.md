@@ -1,127 +1,129 @@
-# 🏃 PaceTrack
+# PaceTrack
 
-A personal running tracker with live GPS route mapping and real-time club leaderboards. Log your runs, race your friends, and watch the leaderboard update the moment someone finishes a run.
+A full-stack running tracker — log workouts, watch your pace compute automatically, race friends on club leaderboards, and own your entire training history.
 
-Built as a full-stack project by two CS students in one month.
+**Live demo:** https://pace-track.vercel.app
+
+---
+
+## Screenshots
+
+| Dashboard Screen | Club Leaderboard |
+|---|---|
+| ![Tracking](docs/screenshot-track.png) | ![Leaderboard](docs/screenshot-leaderboard.png) |
 
 ---
 
 ## Features
 
-- **Live GPS Tracking** — Start a run and watch your route traced on a Mapbox map in real time. Pace, distance, and elevation update as you move.
-- **Run History** — Log runs manually or save live sessions. Browse your history with pace, distance, and run type at a glance.
-- **Club Leaderboards** — Create or join a club with friends. Compete on weekly mileage with a leaderboard that updates live via Socket.io the moment a clubmate finishes a run.
-- **GPX Upload** — Upload `.gpx` files from a GPS watch (Garmin, Apple Watch) and attach them to any run.
-- **Personal Records** — Track your fastest pace, longest run, and best weekly mileage automatically.
+- **Live GPS Tracking** — Start a run and watch your route traced on a Mapbox map in real time. Pace, speed, distance, elevation, and calories update as you move.
+- **Run History** — Log runs manually or save live sessions. Browse with filter chips (All / This week / This month / Easy / Hard).
+- **Club Leaderboards** — Create or join a club. Compete on weekly mileage with a leaderboard that updates live via Socket.io the moment a clubmate finishes a run.
+- **GPX Upload** — Import `.gpx` files from Garmin, Apple Watch, or Strava.
+- **Personal Records** — Fastest pace, longest run, and best weekly km tracked automatically.
 
 ---
 
 ## Tech Stack
 
-| Layer      | Tech                              |
-| ---------- | --------------------------------- |
-| Frontend   | React, TypeScript, Vite, Tailwind |
-| Backend    | Node.js, Express, TypeScript      |
-| Database   | MongoDB Atlas                     |
-| Maps       | Mapbox GL JS                      |
-| Real-time  | Socket.io                         |
-| Storage    | AWS S3                            |
-| Deploy     | Vercel (frontend) · Fly.io (backend) |
+| Layer | Tech |
+|---|---|
+| Frontend | React 19, Vite, TypeScript, Tailwind CSS v4, Mapbox GL JS |
+| Backend | Node.js, Express 5, TypeScript, Socket.io |
+| Database | MongoDB Atlas (Mongoose) |
+| Storage | AWS S3 (GPX uploads) |
+| Auth | JWT access + refresh tokens (httpOnly cookies) |
+| Deploy | Vercel (frontend) · Render (backend) |
 
 ---
 
-## Getting Started
+## Local Setup
 
 ### Prerequisites
-- Node.js 20+
-- MongoDB Atlas account (free M0 tier)
-- Mapbox account (free tier)
-- AWS account (S3 bucket)
 
-### 1. Clone the repo
+- Node.js 18+
+- [MongoDB Atlas](https://www.mongodb.com/atlas) cluster (free M0 tier works)
+- [Mapbox](https://mapbox.com) public token (free)
+- AWS S3 bucket — only needed for GPX upload feature
+
+### 1. Clone
 
 ```bash
-git clone https://github.com/your-username/pacetrack.git
-cd pacetrack
+git clone https://github.com/nhuynh30/PaceTrack.git
+cd PaceTrack
 ```
 
-### 2. Set up the backend
+### 2. Backend
 
 ```bash
-cd back-end
+cd backend
 npm install
-cp .env.example .env   # fill in your values
-npm run dev            # runs on http://localhost:8000
+cp .env.example .env   # then fill in values
+npm run dev            # http://localhost:8000
 ```
 
-### 3. Set up the frontend
-
-```bash
-cd front-end
-npm install
-cp .env.example .env   # fill in your values
-npm run dev            # runs on http://localhost:5173
-```
-
-### Environment Variables
-
-**`back-end/.env`**
-```
+**`backend/.env`**
+```env
 MONGODB_URI=mongodb+srv://...
-JWT_SECRET=your-secret
+JWT_SECRET=long-random-string
 JWT_EXPIRES_IN=15m
-REFRESH_SECRET=your-refresh-secret
+REFRESH_SECRET=another-long-random-string
 REFRESH_EXPIRES_IN=7d
-AWS_ACCESS_KEY_ID=...
-AWS_SECRET_ACCESS_KEY=...
-S3_BUCKET=pacetrack-gpx
-AWS_REGION=us-east-1
 PORT=8000
+
+# Comma-separated allowed frontend origins
+ALLOWED_ORIGINS=http://localhost:5173
+
+# Open Elevation API (free, no key required)
+OPEN_ELEVATION_URL=https://api.open-elevation.com/api/v1/lookup
+
+# AWS S3 — optional, only for GPX uploads
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=ap-southeast-1
+S3_BUCKET=
 ```
 
-**`front-end/.env`**
+### 3. Frontend
+
+```bash
+cd frontend
+npm install
+cp .env.example .env   # or create manually
+npm run dev            # http://localhost:5173
 ```
+
+**`frontend/.env`**
+```env
 VITE_API_URL=http://localhost:8000/api/v1
-VITE_MAPBOX_TOKEN=pk.eyJ...
+VITE_MAPBOX_TOKEN=pk.your_mapbox_public_token
 ```
-
----
-
-## Deployment
-
-| Service | Platform | Command |
-| ------- | -------- | ------- |
-| Frontend | Vercel | `vercel deploy` from `front-end/` |
-| Backend | Fly.io | `fly deploy` from `back-end/` |
-
-Set the same environment variables in each platform's dashboard before deploying.
 
 ---
 
 ## Project Structure
 
 ```
-pacetrack/
-├── back-end/
-│   ├── src/
-│   │   ├── routes/       # Express route handlers
-│   │   ├── models/       # Mongoose schemas
-│   │   └── middleware/   # Auth, error handling
-│   └── .env.example
-└── front-end/
-    ├── src/
-    │   ├── pages/        # Route-level components
-    │   ├── components/   # Reusable UI components
-    │   └── hooks/        # Custom React hooks
-    └── .env.example
+PaceTrack/
+├── backend/
+│   └── src/
+│       ├── routes/       # Express route handlers
+│       ├── models/       # Mongoose schemas
+│       ├── middleware/   # Auth, error handling, rate limiting
+│       └── socket.ts     # Socket.io setup
+└── frontend/
+    └── src/
+        ├── pages/        # Route-level components
+        ├── hooks/        # Custom React hooks (useRuns, useClubs…)
+        └── lib/          # Axios instance, socket client
 ```
 
 ---
 
 ## Authors
 
-- **Dev 1 (You)** — Backend, API, database
-- **Dev 2 (Friend)** — Frontend, UI, maps
+- **Quan Huynh** — Backend, API, database, deployment
+- **Huy Pham** — Frontend, UI, maps
 
 ---
 

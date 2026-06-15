@@ -33,6 +33,9 @@ export default function ClubDetailPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState('');
+  const [renameLoading, setRenameLoading] = useState(false);
   const [liveRows, setLiveRows] = useState<LeaderboardRow[] | null>(null);
   const [flash, setFlash] = useState(false);
   const displayRows = liveRows ?? rows;
@@ -83,6 +86,23 @@ export default function ClubDetailPage() {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setActionError(msg ?? 'Failed to leave club.');
       setActionLoading(false);
+    }
+  }
+
+  async function handleRename() {
+    if (!renameValue.trim()) return;
+    setRenameLoading(true);
+    setActionError(null);
+    try {
+      await api.patch(`/clubs/${id}`, { name: renameValue.trim() });
+      refreshClub();
+      setRenaming(false);
+      setRenameValue('');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+      setActionError(msg ?? 'Failed to rename club.');
+    } finally {
+      setRenameLoading(false);
     }
   }
 
@@ -208,13 +228,49 @@ export default function ClubDetailPage() {
                         {actionLoading ? 'Leaving…' : 'Leave'}
                       </button>
                     )}
-                    {isCreator && !confirmDelete && (
-                      <button
-                        onClick={() => setConfirmDelete(true)}
-                        className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500/40 transition"
-                      >
-                        Delete Club
-                      </button>
+                    {isCreator && !confirmDelete && !renaming && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => { setRenaming(true); setRenameValue(club!.name); }}
+                          className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-white/20 transition"
+                        >
+                          Rename
+                        </button>
+                        <button
+                          onClick={() => setConfirmDelete(true)}
+                          className="rounded-full border border-white/30 bg-white/10 px-4 py-1.5 text-xs font-semibold text-white hover:bg-red-500/40 transition"
+                        >
+                          Delete Club
+                        </button>
+                      </div>
+                    )}
+                    {isCreator && renaming && (
+                      <div className="flex flex-col items-end gap-1.5">
+                        <input
+                          autoFocus
+                          value={renameValue}
+                          onChange={e => setRenameValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleRename(); if (e.key === 'Escape') setRenaming(false); }}
+                          className="rounded-lg bg-white/10 border border-white/30 px-3 py-1.5 text-xs text-white placeholder-white/50 outline-none focus:border-white/60 w-44"
+                          placeholder="New club name"
+                          maxLength={50}
+                        />
+                        <div className="flex gap-2">
+                          <button
+                            onClick={handleRename}
+                            disabled={renameLoading || !renameValue.trim()}
+                            className="rounded-full bg-white px-3 py-1 text-xs font-bold text-orange-500 hover:bg-white/90 transition disabled:opacity-50"
+                          >
+                            {renameLoading ? '…' : 'Save'}
+                          </button>
+                          <button
+                            onClick={() => setRenaming(false)}
+                            className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white hover:bg-white/20 transition"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
                     )}
                     {isCreator && confirmDelete && (
                       <div className="flex flex-col items-end gap-1.5">
@@ -306,10 +362,10 @@ function LeaderboardTable({ rows, currentUserId, creatorId }: { rows: Leaderboar
     <table className="w-full text-sm">
       <thead>
         <tr className="text-xs text-gray-400 bg-gray-50/80">
-          <th className="py-2.5 pl-5 pr-3 text-left font-medium w-14">Rank</th>
-          <th className="px-3 py-2.5 text-left font-medium">Name</th>
-          <th className="px-3 py-2.5 text-right font-medium">Km</th>
-          <th className="py-2.5 pl-3 pr-5 text-right font-medium">Runs</th>
+          <th className="py-2.5 pl-4 pr-2 text-left font-medium w-10">#</th>
+          <th className="px-2 py-2.5 text-left font-medium">Name</th>
+          <th className="px-2 py-2.5 text-right font-medium">Km</th>
+          <th className="hidden sm:table-cell py-2.5 pl-2 pr-4 text-right font-medium">Runs</th>
         </tr>
       </thead>
       <tbody>
@@ -328,18 +384,18 @@ function LeaderboardTable({ rows, currentUserId, creatorId }: { rows: Leaderboar
                   : i % 2 === 0 ? 'bg-white' : 'bg-gray-50/40'
               }`}
             >
-              <td className="py-3.5 pl-5 pr-3">
+              <td className="py-3 pl-4 pr-2">
                 {isFirst ? (
-                  <span className="text-xl">👑</span>
+                  <span className="text-lg">👑</span>
                 ) : (
                   <span className={`text-sm font-bold ${isMe ? 'text-teal-600' : 'text-gray-400'}`}>
                     {row.rank}
                   </span>
                 )}
               </td>
-              <td className="px-3 py-3.5">
-                <div className="flex items-center gap-2">
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+              <td className="px-2 py-3 min-w-0">
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
                     isMe
                       ? 'bg-teal-100 text-teal-700'
                       : isFirst
@@ -348,19 +404,19 @@ function LeaderboardTable({ rows, currentUserId, creatorId }: { rows: Leaderboar
                   }`}>
                     {row.firstName[0]?.toUpperCase()}
                   </div>
-                  <span className={`font-medium ${isMe ? 'text-teal-700' : 'text-gray-900'}`}>
+                  <span className={`font-medium truncate ${isMe ? 'text-teal-700' : 'text-gray-900'}`}>
                     {row.firstName}
-                    {isMe && <span className="ml-1.5 text-xs text-teal-400 font-normal">you</span>}
+                    {isMe && <span className="ml-1 text-xs text-teal-400 font-normal">you</span>}
                   </span>
                   {isOwner && (
-                    <span className="rounded-full bg-orange-100 border border-orange-200 px-1.5 py-0.5 text-xs font-semibold text-orange-600">
+                    <span className="hidden sm:inline rounded-full bg-orange-100 border border-orange-200 px-1.5 py-0.5 text-xs font-semibold text-orange-600 shrink-0">
                       owner
                     </span>
                   )}
                 </div>
               </td>
-              <td className="px-3 py-3.5 text-right">
-                <span className={`inline-flex items-center gap-0.5 rounded-lg px-2.5 py-1 text-sm font-bold border ${
+              <td className="px-2 py-3 text-right">
+                <span className={`inline-flex items-center gap-0.5 rounded-lg px-2 py-0.5 text-sm font-bold border ${
                   isMe
                     ? 'bg-teal-50 border-teal-100 text-teal-600'
                     : isFirst
@@ -371,7 +427,7 @@ function LeaderboardTable({ rows, currentUserId, creatorId }: { rows: Leaderboar
                   <span className="text-xs font-normal opacity-60">km</span>
                 </span>
               </td>
-              <td className={`py-3.5 pl-3 pr-5 text-right text-sm font-medium ${isMe ? 'text-teal-500' : 'text-gray-400'}`}>
+              <td className={`hidden sm:table-cell py-3 pl-2 pr-4 text-right text-sm font-medium ${isMe ? 'text-teal-500' : 'text-gray-400'}`}>
                 {row.runCount}
               </td>
             </tr>
