@@ -70,14 +70,12 @@ export default function LoginPage() {
               Run. Track. Improve.
             </p>
           </div>
-          {token && (
-            <Link
-              to="/dashboard"
-              className="text-xs text-slate-400 hover:text-white transition-colors mt-1"
-            >
-              ← Dashboard
-            </Link>
-          )}
+          <Link
+            to={token ? '/dashboard' : '/'}
+            className="text-xs text-slate-400 hover:text-white transition-colors mt-1"
+          >
+            {token ? '← Dashboard' : '← Home'}
+          </Link>
         </div>
 
         <h2 className="mb-6 text-lg font-semibold text-white">Sign in</h2>
