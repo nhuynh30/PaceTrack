@@ -9,6 +9,7 @@ import RunDetailPage from './pages/RunDetailPage';
 import TrackPage from './pages/TrackPage';
 import ClubsPage from './pages/ClubsPage';
 import ClubDetailPage from './pages/ClubDetailPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -38,7 +39,6 @@ export default function App() {
         }
       />
       <Route path="/" element={<LandingPage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
       <Route
         path="/track"
         element={
@@ -79,6 +79,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }

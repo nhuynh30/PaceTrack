@@ -72,14 +72,12 @@ export default function SignUpPage() {
               Run. Track. Improve.
             </p>
           </div>
-          {token && (
-            <Link
-              to="/dashboard"
-              className="mt-1 text-xs text-indigo-300 transition-colors hover:text-white"
-            >
-              ← Dashboard
-            </Link>
-          )}
+          <Link
+            to={token ? '/dashboard' : '/'}
+            className="mt-1 text-xs text-indigo-300 transition-colors hover:text-white"
+          >
+            {token ? '← Dashboard' : '← Home'}
+          </Link>
         </div>
 
         <h2 className="mb-6 text-lg font-semibold text-white">Create account</h2>

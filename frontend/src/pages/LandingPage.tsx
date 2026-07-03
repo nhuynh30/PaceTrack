@@ -99,9 +99,12 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Three-column hero ── */}
-      <div className="flex flex-1">
+      <div className="flex flex-1 flex-col md:flex-row">
 
-        {/* Left photo */}
+        {/* Mobile top photo */}
+        <img src={LEFT_PHOTO} alt="" className="block h-64 w-full object-cover object-top md:hidden" />
+
+        {/* Left photo — desktop only */}
         <div
           className="hidden flex-1 bg-center bg-no-repeat md:block"
           style={{ backgroundImage: `url(${LEFT_PHOTO})`, backgroundSize:'100%' }}
@@ -154,6 +157,7 @@ export default function LandingPage() {
             <button
               onClick={() => setModal('terms')}
               className="underline hover:text-orange-400"
+              style={{ fontFamily: 'Arial, sans-serif' }}
             >
               Terms of Service
             </button>
@@ -161,13 +165,17 @@ export default function LandingPage() {
             <button
               onClick={() => setModal('privacy')}
               className="underline hover:text-orange-400"
+              style={{ fontFamily: 'Arial, sans-serif' }}
             >
               Privacy Policy
             </button>.
           </p>
         </div>
 
-        {/* Right photo */}
+        {/* Mobile bottom photo */}
+        <img src={RIGHT_PHOTO} alt="" className="block h-64 w-full object-cover object-center md:hidden" />
+
+        {/* Right photo — desktop only */}
         <div
           className="hidden flex-1 bg-cover md:block"
           style={{ backgroundImage: `url(${RIGHT_PHOTO})`, backgroundPosition: '100% center' }}
